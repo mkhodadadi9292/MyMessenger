@@ -1,0 +1,23 @@
+# Goal
+- I wanna design and implement a messenger containing :
+- user information
+- one to one (private)  chat
+- private group (only all members are invited to group by admin through  temporary  link or a button  that invite someone to group and needs to be confirmed by invited user)
+- public group
+- replying message should be enabled by all participants in any kinda group
+- each user can send different kinda artifacts like (image, video, music) in the groups which they are member  of
+- register and loging for user must be contained (for simplicity OPT can send to email or even print in log message in order to make development easier)
+-  cantact list should must be provided and everyone even can add anyone to contant list through their username (it is better phone number based on their privacy should be kept hidden)
+- blocking the user some should be provided (like telegram policy)
+- at this point I don't wanna notification functionality (but in future should be provided)
+# Desing and architecture
+- python, fastapi as REST, and sqlite ( for simplicity  as first version, in future I wanna migrate to Postgresql) , alembic for db migration, Nginx for managing static files, depedeci inject should be followed
+- SOLID principles should be followed as much as possible
+- typing should be provided
+- follow three layers must be followed and abstract classes should be provided.
+- as much as possible shoudl be think to be tech agnostic like DDD (I don't wanna make complex by real DDD , so follow three layers while are free to different concept of DDD if they are good)
+- before every thing in the zero phase write  test code in separete folder for test (e2e, integration test, unit test)
+- provide a full list of endpoints as a table
+- provide fron-end side based on React + Vite try to provide similar UI like telegram
+- use Playwright for front-end side (don't forget all kinda tests specially e2e must be provided for front-end side)
+- make different phases and paln them and write as md file in @/home/mohammad/Desktop/company-prjects/messenger-prj/PLAN
