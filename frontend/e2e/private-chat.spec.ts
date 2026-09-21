@@ -40,6 +40,11 @@ test('private chat journey with reply', async ({ browser }) => {
   await expectMessageVisible(bobPage, 'hi alice')
   await expect(bobPage.getByTestId('messages').locator('.reply-chip')).toBeVisible()
 
+  // messages are rendered oldest-first (arrival order, top to bottom)
+  const bubbleTexts = bobPage.getByTestId('messages').locator('.message-text')
+  await expect(bubbleTexts.nth(0)).toHaveText('hi bob')
+  await expect(bubbleTexts.nth(1)).toHaveText('hi alice')
+
   // alice sees the reply
   await expectMessageVisible(alicePage, 'hi alice')
 

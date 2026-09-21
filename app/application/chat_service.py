@@ -46,14 +46,14 @@ class ChatService:
         sender_by_id = {u.id: u for u in senders}
         artifacts = await self._artifacts.list_by_message_ids([m.id for m in last.values()])
         artifact_by_message = {a.message_id: a for a in artifacts}
-        ordered = sorted(
-            chats,
-            key=lambda c: (
-                last[c.id].created_at if c.id in last else c.created_at,
-                c.id,
-            ),
-            reverse=True,
-        )
+        # Sort by last-message arrival time; break ties with the message id
+        # (not the chat id) so same-second arrivals keep true arrival order.
+        def _sort_key(chat: Chat) -> tuple:
+            if chat.id in last:
+                return (last[chat.id].created_at, last[chat.id].id)
+            return (chat.created_at, 0)
+
+        ordered = sorted(chats, key=_sort_key, reverse=True)
         return [
             (
                 c,

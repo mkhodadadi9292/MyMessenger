@@ -321,3 +321,42 @@ async def test_promote_requires_owner(client, user_factory) -> None:
         headers=auth_headers(bob["access_token"]),
     )
     assert response.status_code == 403
+
+
+async def _send(client, chat_id: int, sender: dict, text: str) -> None:
+    response = await client.post(
+        f"{API}/chats/{chat_id}/messages",
+        json={"text": text},
+        headers=auth_headers(sender["access_token"]),
+    )
+    assert response.status_code == 200, response.text
+
+
+async def _chat_ids(client, headers: dict) -> list[int]:
+    response = await client.get(f"{API}/chats", headers=headers)
+    assert response.status_code == 200, response.text
+    return [c["id"] for c in response.json()]
+
+
+async def test_chat_list_sorted_by_last_message_arrival(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    carol = await user_factory(username="carol")
+    alice_headers = auth_headers(alice["access_token"])
+
+    chat_ab = await _open_private_chat(client, bob["user"]["id"], alice_headers)
+    chat_ac = await _open_private_chat(client, carol["user"]["id"], alice_headers)
+
+    # messages arrive in ab first, then in ac -> ac must be on top
+    await _send(client, chat_ab["id"], alice, "first")
+    await _send(client, chat_ac["id"], alice, "second")
+    assert await _chat_ids(client, alice_headers) == [chat_ac["id"], chat_ab["id"]]
+
+    # a newer message arrives in ab -> ab must jump back to the top
+    await _send(client, chat_ab["id"], alice, "third")
+    assert await _chat_ids(client, alice_headers) == [chat_ab["id"], chat_ac["id"]]
+
+    # the newest message in each chat is reported as last_message
+    listing = await client.get(f"{API}/chats", headers=alice_headers)
+    previews = {c["id"]: c["last_message"]["text"] for c in listing.json()}
+    assert previews == {chat_ab["id"]: "third", chat_ac["id"]: "second"}

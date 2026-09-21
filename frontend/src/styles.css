@@ -429,3 +429,18 @@ h3 {
   font-size: 18px;
   padding: 4px 8px;
 }
+
+.message-time {
+  float: right;
+  margin-left: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  align-self: flex-end;
+}
+
+.chat-item-time {
+  color: var(--muted);
+  font-size: 11px;
+  margin-left: auto;
+  white-space: nowrap;
+}

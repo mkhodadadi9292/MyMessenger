@@ -1,3 +1,4 @@
+import { formatTime } from '../time'
 import type { ArtifactOut, MessageOut, UserPublic } from '../types'
 
 interface Props {
@@ -29,6 +30,9 @@ export function MessageBubble({ message, me, onReply }: Props) {
           <span className="message-text">{message.text}</span>
         )}
         {message.edited_at && !message.deleted_at && <span className="edited-mark"> (edited)</span>}
+        <span className="message-time" data-testid={`time-${message.id}`}>
+          {formatTime(message.created_at)}
+        </span>
       </div>
       <button className="reply-button" data-testid={`reply-${message.id}`} onClick={() => onReply(message)}>
         ↩

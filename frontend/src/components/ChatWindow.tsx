@@ -168,7 +168,9 @@ export function ChatWindow({ user, chatId }: Props) {
       {error && <div className="error-banner" data-testid="chat-error">{error}</div>}
 
       <div className="messages" data-testid="messages">
-        {messages.map((message) => (
+        {/* API returns newest-first; render oldest-first so messages flow
+            top-to-bottom by arrival time. */}
+        {[...messages].reverse().map((message) => (
           <MessageBubble key={message.id} message={message} me={user} onReply={setReplyTo} />
         ))}
         <div ref={bottomRef} />

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { api } from '../api'
+import { formatTime } from '../time'
 import type { ChatListItem, ContactOut, InviteOut, UserPublic } from '../types'
 
 interface SearchResult {
@@ -293,6 +294,9 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
                     : chat.last_message.text ?? chat.last_message.artifact?.file_name
                   : 'no messages yet'}
               </span>
+            </span>
+            <span className="chat-item-time" data-testid={`chat-time-${chat.id}`}>
+              {formatTime(chat.last_message?.created_at ?? chat.created_at)}
             </span>
           </button>
         ))}

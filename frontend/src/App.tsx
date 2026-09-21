@@ -12,6 +12,13 @@ export default function App() {
   const [chats, setChats] = useState<ChatListItem[]>([])
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null)
 
+  // Sidebar order: most recent last-message arrival time first
+  const sortedChats = [...chats].sort((a, b) => {
+    const ta = a.last_message?.created_at ?? a.created_at
+    const tb = b.last_message?.created_at ?? b.created_at
+    return Date.parse(tb) - Date.parse(ta)
+  })
+
   useEffect(() => {
     if (!hasSession()) {
       setLoading(false)
@@ -45,7 +52,7 @@ export default function App() {
     <div className="layout">
       <Sidebar
         user={user}
-        chats={chats}
+        chats={sortedChats}
         selectedChatId={selectedChatId}
         onSelectChat={setSelectedChatId}
         onLogout={() => {
