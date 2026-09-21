@@ -360,3 +360,30 @@ async def test_chat_list_sorted_by_last_message_arrival(client, user_factory) ->
     listing = await client.get(f"{API}/chats", headers=alice_headers)
     previews = {c["id"]: c["last_message"]["text"] for c in listing.json()}
     assert previews == {chat_ab["id"]: "third", chat_ac["id"]: "second"}
+
+
+async def test_private_chat_list_includes_peer(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    alice_headers = auth_headers(alice["access_token"])
+    chat = await _open_private_chat(client, bob["user"]["id"], alice_headers)
+
+    # no messages yet — the peer must still be reported
+    listing = await client.get(f"{API}/chats", headers=alice_headers)
+    item = listing.json()[0]
+    assert item["id"] == chat["id"]
+    assert item["peer"]["id"] == bob["user"]["id"]
+    assert item["peer"]["username"] == "bob"
+
+    # the other side sees alice as the peer
+    bob_listing = await client.get(f"{API}/chats", headers=auth_headers(bob["access_token"]))
+    assert bob_listing.json()[0]["peer"]["username"] == "alice"
+
+
+async def test_group_chat_list_has_no_peer(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    chat = await _create_group(client, auth_headers(alice["access_token"]), "Team", False)
+    listing = await client.get(f"{API}/chats", headers=auth_headers(alice["access_token"]))
+    item = listing.json()[0]
+    assert item["id"] == chat["id"]
+    assert item["peer"] is None

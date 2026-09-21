@@ -151,6 +151,21 @@ class SqlChatMemberRepository(ChatMemberRepository):
         ).all()
         return [member_to_entity(m) for m in models]
 
+    async def list_other_members(
+        self, chat_ids: Sequence[int], user_id: int
+    ) -> list[ChatMember]:
+        if not chat_ids:
+            return []
+        models = (
+            await self._session.scalars(
+                select(ChatMemberModel).where(
+                    ChatMemberModel.chat_id.in_(list(chat_ids)),
+                    ChatMemberModel.user_id != user_id,
+                )
+            )
+        ).all()
+        return [member_to_entity(m) for m in models]
+
     async def add(self, entity: ChatMember) -> ChatMember:
         model = ChatMemberModel(
             chat_id=entity.chat_id,

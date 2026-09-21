@@ -23,14 +23,14 @@ test('private chat journey with reply', async ({ browser }) => {
   await alicePage.getByTestId('search-button').click()
   await alicePage.getByTestId(`add-contact-${bob.username}`).click()
   await alicePage.getByTestId(`message-${bob.username}`).click()
-  await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.username)
+  await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.firstName)
 
   await sendMessage(alicePage, 'hi bob')
   await expectMessageVisible(alicePage, 'hi bob')
 
   // bob sees the chat appear in his list (polled) and opens it
-  await bobPage.getByTestId('chat-list').getByText(alice.username).first().click()
-  await expect(bobPage.getByTestId('chat-title')).toHaveText(alice.username)
+  await bobPage.getByTestId('chat-list').getByText(alice.firstName).first().click()
+  await expect(bobPage.getByTestId('chat-title')).toHaveText(alice.firstName)
   await expectMessageVisible(bobPage, 'hi bob')
 
   // bob replies to alice's message

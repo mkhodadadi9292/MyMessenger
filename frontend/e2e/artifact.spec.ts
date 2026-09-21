@@ -26,7 +26,7 @@ test('image artifact is uploaded and visible to both users', async ({ browser })
   })
   await expect(alicePage.getByTestId('messages').locator('img.artifact-img')).toBeVisible()
 
-  await bobPage.getByTestId('chat-list').getByText(alice.username).first().click()
+  await bobPage.getByTestId('chat-list').getByText(alice.firstName).first().click()
   await expect(bobPage.getByTestId('messages').locator('img.artifact-img')).toBeVisible()
 
   await aliceContext.close()

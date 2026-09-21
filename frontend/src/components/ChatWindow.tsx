@@ -60,8 +60,14 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
 
   const otherMember =
     chat?.type === 'private' ? members.find((m) => m.user_id !== user.id) : null
+  const displayName = (member: MemberOut) =>
+    [member.first_name, member.last_name].filter(Boolean).join(' ')
   const title =
-    chat?.type === 'group' ? chat.title : (otherMember?.username ?? 'Private chat')
+    chat?.type === 'group'
+      ? chat.title
+      : otherMember
+        ? displayName(otherMember) || otherMember.username
+        : 'Private chat'
   const otherBlocked = otherMember
     ? blocked.some((b) => b.user_id === otherMember.user_id)
     : false
@@ -177,7 +183,7 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         {/* API returns newest-first; render oldest-first so messages flow
             top-to-bottom by arrival time. */}
         {[...messages].reverse().map((message) => (
-          <MessageBubble key={message.id} message={message} me={user} onReply={setReplyTo} />
+          <MessageBubble key={message.id} message={message} me={user} onReply={setReplyTo} showSender={chat?.type === 'group'} />
         ))}
         <div ref={bottomRef} />
       </div>
@@ -219,8 +225,8 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
             if (e.key === 'Enter') void send()
           }}
         />
-        <button data-testid="send-button" onClick={() => void send()}>
-          Send
+        <button className="send-button" data-testid="send-button" onClick={() => void send()}>
+          ➤
         </button>
       </footer>
     </main>

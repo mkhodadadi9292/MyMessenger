@@ -64,6 +64,16 @@ class ChatService:
             for c in ordered
         ]
 
+    async def peers_for_private_chats(self, user_id: int, chats: list[Chat]) -> dict[int, User]:
+        """Other participant of each private chat, keyed by chat id."""
+        private_ids = [c.id for c in chats if c.type is ChatType.PRIVATE]
+        if not private_ids:
+            return {}
+        members = await self._members.list_other_members(private_ids, user_id)
+        users = await self._users.list_by_ids({m.user_id for m in members})
+        user_by_id = {u.id: u for u in users}
+        return {m.chat_id: user_by_id[m.user_id] for m in members if m.user_id in user_by_id}
+
     async def open_private_chat(self, actor_id: int, target_id: int) -> Chat:
         if actor_id == target_id:
             raise ValidationError("cannot open a private chat with yourself")

@@ -37,6 +37,12 @@ class ChatMemberRepository(AbstractRepository[ChatMember, int]):
         ...
 
     @abstractmethod
+    async def list_other_members(
+        self, chat_ids: Sequence[int], user_id: int
+    ) -> list[ChatMember]:
+        """All members other than user_id across the given chats."""
+
+    @abstractmethod
     async def remove(self, chat_id: int, user_id: int) -> None:
         ...
 

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.api.deps import get_chat_service, get_current_user
-from app.api.schemas.common import chat_to_out, member_to_out, message_to_out
+from app.api.schemas.common import chat_to_out, member_to_out, message_to_out, user_to_public
 from app.application.chat_service import ChatService
 from app.domain.entities import User
 
@@ -34,9 +34,12 @@ async def list_chats(
     service: ChatService = Depends(get_chat_service),
 ) -> list[dict]:
     items = await service.list_chats(current_user.id)
+    peers = await service.peers_for_private_chats(current_user.id, [c for c, *_ in items])
     result = []
     for chat, last_message, sender, artifact in items:
         item = chat_to_out(chat).model_dump()
+        peer = peers.get(chat.id)
+        item["peer"] = user_to_public(peer).model_dump() if peer else None
         item["last_message"] = (
             message_to_out(last_message, sender, artifact).model_dump() if last_message else None
         )

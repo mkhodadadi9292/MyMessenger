@@ -50,6 +50,7 @@ export interface ChatOut {
 
 export interface ChatListItem extends ChatOut {
   last_message: MessageOut | null
+  peer: UserPublic | null
 }
 
 export interface MemberOut {

@@ -20,10 +20,10 @@ interface Props {
   onLogout: () => void
 }
 
-function chatTitle(chat: ChatListItem, me: UserPublic): string {
+function chatTitle(chat: ChatListItem): string {
   if (chat.type === 'group') return chat.title ?? 'Group'
-  if (chat.last_message && chat.last_message.sender.id !== me.id) {
-    return chat.last_message.sender.username
+  if (chat.peer) {
+    return chat.peer.first_name || chat.peer.username
   }
   return 'Private chat'
 }
@@ -256,9 +256,9 @@ export function Sidebar({
             className={`chat-item ${chat.id === selectedChatId ? 'selected' : ''}`}
             onClick={() => onSelectChat(chat.id)}
           >
-            <span className="avatar-circle">{chatTitle(chat, user).charAt(0).toUpperCase()}</span>
+            <span className="avatar-circle">{chatTitle(chat).charAt(0).toUpperCase()}</span>
             <span className="chat-item-body">
-              <span className="chat-item-title">{chatTitle(chat, user)}</span>
+              <span className="chat-item-title">{chatTitle(chat)}</span>
               <span className="chat-item-preview">
                 {chat.last_message
                   ? chat.last_message.deleted_at

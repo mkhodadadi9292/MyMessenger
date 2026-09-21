@@ -31,7 +31,7 @@ test.describe('mobile viewport (390x844)', () => {
 
     // opening a chat switches to the chat pane (sidebar hidden)
     await openPrivateChatViaSearch(alicePage, bob.username)
-    await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.username)
+    await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.firstName)
     await expect(alicePage.getByTestId('chat-list')).toBeHidden()
 
     await sendMessage(alicePage, 'hello from mobile')
@@ -44,7 +44,7 @@ test.describe('mobile viewport (390x844)', () => {
 
     // the other user still receives the message on mobile
     await bobPage.getByTestId('chat-list').locator('.chat-item').first().click()
-    await expect(bobPage.getByTestId('chat-title')).toHaveText(alice.username)
+    await expect(bobPage.getByTestId('chat-title')).toHaveText(alice.firstName)
     await expectMessageVisible(bobPage, 'hello from mobile')
 
     await aliceContext.close()
@@ -70,7 +70,7 @@ test.describe('desktop viewport (1280x800)', () => {
 
     // sidebar and chat window are visible simultaneously
     await expect(alicePage.getByTestId('chat-list')).toBeVisible()
-    await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.username)
+    await expect(alicePage.getByTestId('chat-title')).toHaveText(bob.firstName)
     // the back button is a mobile-only element
     await expect(alicePage.getByTestId('back-button')).toBeHidden()
 
