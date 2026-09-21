@@ -66,6 +66,7 @@ h3 {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   color: var(--muted);
 }
 
@@ -76,6 +77,7 @@ h3 {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
 }
 
 .auth-card {
@@ -104,6 +106,7 @@ h3 {
 .layout {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 .sidebar {
@@ -414,7 +417,7 @@ h3 {
 
 .composer {
   background: var(--panel);
-  padding: 10px 16px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
   display: flex;
   gap: 8px;
   align-items: center;
