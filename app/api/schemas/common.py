@@ -89,19 +89,45 @@ def artifact_to_out(artifact: Artifact) -> ArtifactOut:
     )
 
 
+class ReplyPreview(BaseModel):
+    id: int
+    sender_username: str
+    text: str | None = None
+    file_name: str | None = None
+    deleted: bool = False
+
+
 class MessageOut(BaseModel):
     id: int
     chat_id: int
     sender: UserPublic
     text: str | None = None
     reply_to_id: int | None = None
+    reply_to: ReplyPreview | None = None
     artifact: ArtifactOut | None = None
     created_at: datetime
     edited_at: datetime | None = None
     deleted_at: datetime | None = None
 
 
-def message_to_out(message: Message, sender: User | None, artifact: Artifact | None) -> MessageOut:
+def reply_preview_to_out(
+    target: Message, sender: User | None, artifact: Artifact | None
+) -> ReplyPreview:
+    return ReplyPreview(
+        id=target.id,
+        sender_username=str(sender.username) if sender else "unknown",
+        text=target.text if target.deleted_at is None else None,
+        file_name=artifact.file_name if artifact else None,
+        deleted=target.deleted_at is not None,
+    )
+
+
+def message_to_out(
+    message: Message,
+    sender: User | None,
+    artifact: Artifact | None,
+    reply_to: ReplyPreview | None = None,
+) -> MessageOut:
     return MessageOut(
         id=message.id,
         chat_id=message.chat_id,
@@ -110,6 +136,7 @@ def message_to_out(message: Message, sender: User | None, artifact: Artifact | N
         ),
         text=message.text,
         reply_to_id=message.reply_to_id,
+        reply_to=reply_to,
         artifact=artifact_to_out(artifact) if artifact else None,
         created_at=message.created_at,
         edited_at=message.edited_at,

@@ -77,6 +77,23 @@ class MessageService:
             (m, sender_by_id.get(m.sender_id), artifact_by_message.get(m.id)) for m in page
         ]
 
+    async def build_reply_previews(
+        self, messages: list[Message]
+    ) -> dict[int, tuple[Message, User | None, Artifact | None]]:
+        """Reply targets (with sender and artifact) keyed by target message id."""
+        ids = {m.reply_to_id for m in messages if m.reply_to_id is not None}
+        if not ids:
+            return {}
+        targets = await self._messages.list_by_ids(list(ids))
+        senders = await self._users.list_by_ids({t.sender_id for t in targets})
+        sender_by_id = {u.id: u for u in senders}
+        artifacts = await self._artifacts.list_by_message_ids([t.id for t in targets])
+        artifact_by_message = {a.message_id: a for a in artifacts}
+        return {
+            t.id: (t, sender_by_id.get(t.sender_id), artifact_by_message.get(t.id))
+            for t in targets
+        }
+
     async def send_message(
         self, actor_id: int, chat_id: int, text: str | None, reply_to_id: int | None
     ) -> Message:

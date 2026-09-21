@@ -15,6 +15,10 @@ class MessageRepository(AbstractRepository[Message, int]):
         ...
 
     @abstractmethod
+    async def list_by_ids(self, message_ids: Sequence[int]) -> list[Message]:
+        ...
+
+    @abstractmethod
     async def update(self, entity: Message) -> Message:
         ...
 

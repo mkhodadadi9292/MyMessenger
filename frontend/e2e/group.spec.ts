@@ -19,9 +19,10 @@ test('private group: create, invite, accept, message', async ({ browser }) => {
   await alicePage.getByTestId('create-group').click()
   await expect(alicePage.getByTestId('chat-title')).toHaveText('Team')
 
-  // alice invites bob by username
+  // alice invites bob by username (input clears only after the POST lands)
   await alicePage.getByTestId('invite-username').fill(bob.username)
   await alicePage.getByTestId('invite-submit').click()
+  await expect(alicePage.getByTestId('invite-username')).toHaveValue('')
 
   // bob sees the pending invite and accepts
   await bobPage.getByTestId('invites-button').click()

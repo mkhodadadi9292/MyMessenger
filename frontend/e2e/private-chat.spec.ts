@@ -38,7 +38,11 @@ test('private chat journey with reply', async ({ browser }) => {
   await expect(bobPage.getByTestId('reply-preview')).toBeVisible()
   await sendMessage(bobPage, 'hi alice')
   await expectMessageVisible(bobPage, 'hi alice')
-  await expect(bobPage.getByTestId('messages').locator('.reply-chip')).toBeVisible()
+  // the reply chip shows the content of the replied message, not just a symbol
+  const chip = bobPage.getByTestId('messages').locator('.reply-chip')
+  await expect(chip).toBeVisible()
+  await expect(chip).toContainText('hi bob')
+  await expect(chip).toContainText(alice.username)
 
   // messages are rendered oldest-first (arrival order, top to bottom)
   const bubbleTexts = bobPage.getByTestId('messages').locator('.message-text')

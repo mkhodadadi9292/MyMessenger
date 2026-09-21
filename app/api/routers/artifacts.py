@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import FileResponse
 
-from app.api.deps import get_artifact_service, get_current_user
-from app.api.schemas.common import message_to_out
+from app.api.deps import get_artifact_service, get_current_user, get_message_service
+from app.api.routers.messages import _message_dicts
 from app.application.artifact_service import ArtifactService
+from app.application.message_service import MessageService
 from app.domain.entities import User
 from app.domain.value_objects import ArtifactKind
 
@@ -18,6 +19,7 @@ async def upload_artifact(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     service: ArtifactService = Depends(get_artifact_service),
+    message_service: MessageService = Depends(get_message_service),
 ) -> dict:
     content = await file.read()
     message, artifact = await service.upload(
@@ -29,7 +31,7 @@ async def upload_artifact(
         content,
         reply_to_id,
     )
-    return message_to_out(message, current_user, artifact).model_dump()
+    return (await _message_dicts(message_service, [(message, current_user, artifact)]))[0]
 
 
 @router.get("/artifacts/{artifact_id}/download")

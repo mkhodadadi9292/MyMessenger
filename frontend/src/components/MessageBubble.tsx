@@ -17,12 +17,21 @@ function ArtifactView({ artifact }: { artifact: ArtifactOut }) {
   return <audio className="artifact-audio" src={artifact.url} controls />
 }
 
+function replyContent(message: MessageOut): string {
+  const reply = message.reply_to
+  if (!reply) return 'reply'
+  if (reply.deleted) return `${reply.sender_username}: deleted`
+  return `${reply.sender_username}: ${reply.text ?? reply.file_name ?? 'message'}`
+}
+
 export function MessageBubble({ message, me, onReply }: Props) {
   const mine = message.sender.id === me.id
   return (
     <div className={`message-row ${mine ? 'mine' : 'theirs'}`} data-testid={`message-${message.id}`}>
       <div className="bubble">
-        {message.reply_to_id !== null && <div className="reply-chip">↩ reply</div>}
+        {message.reply_to_id !== null && (
+          <div className="reply-chip">↩ {replyContent(message)}</div>
+        )}
         {message.artifact && <ArtifactView artifact={message.artifact} />}
         {message.deleted_at ? (
           <span className="deleted-text">deleted</span>

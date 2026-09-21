@@ -47,6 +47,16 @@ class SqlMessageRepository(MessageRepository):
         models = (await self._session.scalars(select(MessageModel).where(MessageModel.id.in_(latest_ids)))).all()
         return {m.chat_id: message_to_entity(m) for m in models}
 
+    async def list_by_ids(self, message_ids: Sequence[int]) -> list[Message]:
+        if not message_ids:
+            return []
+        models = (
+            await self._session.scalars(
+                select(MessageModel).where(MessageModel.id.in_(list(message_ids)))
+            )
+        ).all()
+        return [message_to_entity(m) for m in models]
+
     async def add(self, entity: Message) -> Message:
         model = MessageModel(
             chat_id=entity.chat_id,

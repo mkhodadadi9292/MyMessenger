@@ -17,12 +17,21 @@ export interface ArtifactOut {
   url: string
 }
 
+export interface ReplyPreview {
+  id: number
+  sender_username: string
+  text: string | null
+  file_name: string | null
+  deleted: boolean
+}
+
 export interface MessageOut {
   id: number
   chat_id: number
   sender: UserPublic
   text: string | null
   reply_to_id: number | null
+  reply_to: ReplyPreview | null
   artifact: ArtifactOut | null
   created_at: string
   edited_at: string | null

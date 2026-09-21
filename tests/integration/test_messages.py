@@ -280,3 +280,67 @@ async def test_chat_list_contains_last_message(client, user_factory) -> None:
     chats = listing.json()
     assert [c["id"] for c in chats] == [chat_id]
     assert chats[0]["last_message"]["text"] == "latest"
+
+
+async def test_reply_preview_embedded_in_message(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    chat = await _open_chat(client, alice, bob)
+    first = await _send(client, chat, alice, "original message")
+
+    reply = await client.post(
+        f"{API}/chats/{chat}/messages",
+        json={"text": "my reply", "reply_to_id": first["id"]},
+        headers=auth_headers(bob["access_token"]),
+    )
+    assert reply.status_code == 200
+    preview = reply.json()["reply_to"]
+    assert preview["id"] == first["id"]
+    assert preview["sender_username"] == "alice"
+    assert preview["text"] == "original message"
+    assert preview["deleted"] is False
+
+    history = await client.get(
+        f"{API}/chats/{chat}/messages", headers=auth_headers(bob["access_token"])
+    )
+    replies = [m for m in history.json() if m["reply_to"] is not None]
+    assert len(replies) == 1
+    assert replies[0]["reply_to"]["text"] == "original message"
+
+
+async def test_reply_preview_for_deleted_message(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    chat = await _open_chat(client, alice, bob)
+    first = await _send(client, chat, alice, "soon deleted")
+    await client.delete(
+        f"{API}/messages/{first['id']}", headers=auth_headers(alice["access_token"])
+    )
+    reply = await client.post(
+        f"{API}/chats/{chat}/messages",
+        json={"text": "replying to deleted", "reply_to_id": first["id"]},
+        headers=auth_headers(bob["access_token"]),
+    )
+    preview = reply.json()["reply_to"]
+    assert preview["deleted"] is True
+    assert preview["text"] is None
+
+
+async def test_reply_preview_for_artifact_message(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    chat = await _open_chat(client, alice, bob)
+    upload = await client.post(
+        f"{API}/chats/{chat}/artifacts",
+        files={"file": ("pic.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 32, "image/png")},
+        data={"kind": "image"},
+        headers=auth_headers(alice["access_token"]),
+    )
+    artifact_message_id = upload.json()["id"]
+    reply = await client.post(
+        f"{API}/chats/{chat}/messages",
+        json={"text": "nice pic", "reply_to_id": artifact_message_id},
+        headers=auth_headers(bob["access_token"]),
+    )
+    preview = reply.json()["reply_to"]
+    assert preview["file_name"] == "pic.png"
