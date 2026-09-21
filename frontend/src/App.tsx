@@ -11,6 +11,16 @@ export default function App() {
   const [loading, setLoading] = useState(hasSession())
   const [chats, setChats] = useState<ChatListItem[]>([])
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null)
+  const [isMobile, setIsMobile] = useState(
+    () => window.matchMedia('(max-width: 768px)').matches,
+  )
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 768px)')
+    const onChange = (event: MediaQueryListEvent) => setIsMobile(event.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
 
   // Sidebar order: most recent last-message arrival time first
   const sortedChats = [...chats].sort((a, b) => {
@@ -49,7 +59,7 @@ export default function App() {
   }
 
   return (
-    <div className="layout">
+    <div className={`layout ${isMobile && selectedChatId !== null ? 'chat-open' : ''}`}>
       <Sidebar
         user={user}
         chats={sortedChats}
@@ -65,6 +75,7 @@ export default function App() {
         key={selectedChatId ?? 'none'}
         user={user}
         chatId={selectedChatId}
+        onBack={() => setSelectedChatId(null)}
       />
     </div>
   )

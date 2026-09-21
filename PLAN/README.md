@@ -12,6 +12,7 @@ Telegram-like messenger. Backend: Python + FastAPI (REST). Frontend: React + Vit
 | [04-api-endpoints.md](04-api-endpoints.md) | Full endpoint table |
 | [05-phases.md](05-phases.md) | Phased implementation plan with deliverables |
 | [06-testing-strategy.md](06-testing-strategy.md) | Unit / integration / e2e strategy, tools |
+| [07-responsive-ui.md](07-responsive-ui.md) | Responsive frontend: mobile single-pane + desktop two-pane |
 
 ## Phases at a glance
 

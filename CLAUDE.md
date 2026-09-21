@@ -12,6 +12,7 @@ Telegram-like messenger: FastAPI REST backend (SQLite, → Postgres later) + Rea
 | API endpoint table (auth/users/contacts/blocking/chats/invites/messages/artifacts) | `PLAN/04-api-endpoints.md` |
 | Phases 0–8 with per-phase deliverables and tests | `PLAN/05-phases.md` |
 | Testing strategy: unit/integration/e2e pyramid, isolation rules | `PLAN/06-testing-strategy.md` |
+| Responsive UI: mobile single-pane + desktop two-pane | `PLAN/07-responsive-ui.md` |
 
 ## Commands
 
@@ -57,6 +58,7 @@ docker compose down -v         # reset data
 - **Test isolation** (see `PLAN/06-testing-strategy.md`): tests use a shared in-memory SQLite engine (StaticPool) swapped in by `tests/conftest.py` — file-backed DDL is ~150ms/statement on this machine, so do NOT switch tests back to file DBs. Real/dev DB (`data/messenger.db`, `media.db`) must never be touched by tests.
 - **OTP in tests/e2e**: codes come from the capturing sender (`tests/fakes.py`) or the debug endpoint `GET /api/v1/auth/otp/dev/latest?identifier=...` (enabled only when `DEBUG=true`).
 - **Playwright e2e DB**: the backend webServer command wipes and migrates `data/e2e-playwright.db` itself (webServers start before globalSetup, so wiping in globalSetup corrupts the running backend). Specs use per-run unique users (`uniqueUser()` in `frontend/e2e/helpers.ts`).
+- **Responsive** (see `PLAN/07-responsive-ui.md`): breakpoint `max-width: 768px` — mobile is a single pane (list ↔ chat via `back-button`, pure CSS switching with `.chat-open`); desktop is two-pane. Mobile behavior is covered by `frontend/e2e/responsive.spec.ts` (390×844 viewport); keep that spec updated when changing layout behavior.
 
 ## Not in scope for v1
 

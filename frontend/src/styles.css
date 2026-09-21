@@ -444,3 +444,54 @@ h3 {
   margin-left: auto;
   white-space: nowrap;
 }
+
+/* ---------- responsive ---------- */
+
+.back-button {
+  display: none;
+  background: transparent;
+  font-size: 20px;
+  padding: 0 8px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .chat-window {
+    display: none;
+  }
+
+  .layout.chat-open .sidebar {
+    display: none;
+  }
+
+  .layout.chat-open .chat-window {
+    display: flex;
+  }
+
+  .back-button {
+    display: block;
+  }
+
+  .message-row {
+    max-width: 85%;
+  }
+
+  .invite-box input {
+    width: 110px;
+  }
+
+  .composer input {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .auth-card {
+    width: 100%;
+    margin: 16px;
+  }
+}

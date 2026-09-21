@@ -7,9 +7,10 @@ import { MessageBubble } from './MessageBubble'
 interface Props {
   user: UserPublic
   chatId: number | null
+  onBack?: () => void
 }
 
-export function ChatWindow({ user, chatId }: Props) {
+export function ChatWindow({ user, chatId, onBack }: Props) {
   const [chat, setChat] = useState<ChatOut | null>(null)
   const [members, setMembers] = useState<MemberOut[]>([])
   const [messages, setMessages] = useState<MessageOut[]>([])
@@ -135,6 +136,11 @@ export function ChatWindow({ user, chatId }: Props) {
   return (
     <main className="chat-window">
       <header className="chat-header">
+        {onBack && (
+          <button className="back-button" data-testid="back-button" onClick={onBack}>
+            ←
+          </button>
+        )}
         <div>
           <span className="chat-title" data-testid="chat-title">
             {title}
