@@ -1,0 +1,44 @@
+services:
+  backend:
+    build: .
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:////data/messenger.db
+      MEDIA_ROOT: /data/media
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-0123456789}
+      # DEBUG=true keeps the dev OTP helper (GET /api/v1/auth/otp/dev/latest)
+      # and prints OTP codes to the backend log. Set to false in production.
+      DEBUG: ${DEBUG:-true}
+    volumes:
+      - messenger-db:/data
+      - messenger-media:/data/media
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - messenger-media:/var/www/media:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  messenger-db:
+  messenger-media:

@@ -19,7 +19,7 @@ def settings(request, tmp_path) -> Settings:
     return Settings(
         database_url=f"sqlite+aiosqlite:///{tmp_path / 'test.db'}",
         media_root=tmp_path / "media",
-        jwt_secret="test-secret",
+        jwt_secret="test-secret-0123456789-0123456789",
         otp_ttl_seconds=otp_ttl,
         _env_file=None,
     )

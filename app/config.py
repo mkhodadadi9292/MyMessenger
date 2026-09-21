@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = 30
     otp_ttl_seconds: int = 300
     otp_length: int = 6
+    registration_token_ttl_minutes: int = 10
     max_artifact_size_mb: int = 20
 
 

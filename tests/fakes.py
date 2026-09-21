@@ -1,4 +1,7 @@
-class CapturingOtpSender:
+from app.application.ports import OtpSender
+
+
+class CapturingOtpSender(OtpSender):
     """Test double for the OTP delivery port; captures codes per identifier."""
 
     def __init__(self) -> None:

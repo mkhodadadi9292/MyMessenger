@@ -11,7 +11,7 @@ from app.infrastructure.auth.jwt import (
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(jwt_secret="unit-secret", _env_file=None)
+    return Settings(jwt_secret="test-secret-0123456789-0123456789", _env_file=None)
 
 
 def test_access_token_roundtrip(settings: Settings) -> None:
@@ -26,7 +26,7 @@ def test_token_type_marker(settings: Settings) -> None:
 
 def test_decode_with_wrong_secret(settings: Settings) -> None:
     token = create_access_token(1, settings)
-    other = Settings(jwt_secret="other-secret", _env_file=None)
+    other = Settings(jwt_secret="other-test-secret-0123456789-0123456789", _env_file=None)
     with pytest.raises(UnauthorizedError):
         decode_token(token, other)
 

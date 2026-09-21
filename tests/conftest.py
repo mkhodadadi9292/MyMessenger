@@ -6,8 +6,12 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.pool import StaticPool
 
 from app.config import Settings
+from app.infrastructure.db.base import Base
+from app.infrastructure.db import models  # noqa: F401  (registers ORM tables)
 from app.main import create_app
 from tests.fakes import CapturingOtpSender
 from tests.helpers import register_user
@@ -16,9 +20,9 @@ from tests.helpers import register_user
 @pytest.fixture
 def settings(tmp_path) -> Settings:
     return Settings(
-        database_url=f"sqlite+aiosqlite:///{tmp_path / 'test.db'}",
+        database_url="sqlite+aiosqlite://",
         media_root=tmp_path / "media",
-        jwt_secret="test-secret",
+        jwt_secret="test-secret-0123456789-0123456789",
         _env_file=None,
     )
 
@@ -34,8 +38,16 @@ async def app(settings: Settings, otp_sender: CapturingOtpSender) -> FastAPI:
     # Seam for the auth implementation: OTP codes go to this capturing
     # sender instead of the server log.
     application.state.otp_sender = otp_sender
-    yield application
+    # Swap the engine for a shared in-memory SQLite DB: file-backed DDL is
+    # ~150ms/statement on this machine, which dominates test runtime.
     await application.state.engine.dispose()
+    engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
+    application.state.engine = engine
+    application.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield application
+    await engine.dispose()
 
 
 @pytest.fixture

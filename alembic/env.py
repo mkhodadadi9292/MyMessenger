@@ -19,6 +19,7 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 from app.config import Settings
+from app.infrastructure.db import models  # noqa: F401  (registers ORM tables)
 from app.infrastructure.db.base import Base
 
 target_metadata = Base.metadata

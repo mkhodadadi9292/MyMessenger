@@ -6,6 +6,8 @@ Test-first: each phase ships its tests in the same phase. A phase is "done" when
 
 ## Phase 0 — Scaffold + test infrastructure
 
+**Status: done.**
+
 **Goal:** everything needed so later phases only add features.
 
 Deliverables:
@@ -28,6 +30,8 @@ Tests:
 
 ## Phase 1 — Auth + users
 
+**Status: done.**
+
 Deliverables: OTP request/verify/register/login (A1–A5) with code printed in server log (`LogOtpSender` behind `OtpSender` port), JWT access + revocable refresh, profile endpoints (U1–U5), avatar upload, user search with phone privacy.
 
 Tests:
@@ -38,6 +42,8 @@ Tests:
 ---
 
 ## Phase 2 — Contacts + blocking
+
+**Status: done.**
 
 Deliverables: contact add/remove/list (C1–C3), block/unblock/list (B1–B3), blocking rules wired into profile view + contact add.
 
@@ -50,6 +56,8 @@ Tests:
 
 ## Phase 3 — Private chats + messages + replies
 
+**Status: done.**
+
 Deliverables: private chat open (CH2), chat list (CH1), send/list/edit/delete messages (M1–M4), replies via `reply_to_id`, soft delete marker, blocked-user send refusal.
 
 Tests:
@@ -60,6 +68,8 @@ Tests:
 ---
 
 ## Phase 4 — Groups + invites + roles
+
+**Status: done.**
 
 Deliverables: group create (CH3), chat info/update (CH4/CH5), members list (CH6), admin add/remove members (CH7/CH8), public join (CH9), leave (CH10), promote admin (CH11); button invites (I1, I5–I7); temporary invite links (I2–I4); private-group invite requires confirmation.
 
@@ -72,6 +82,8 @@ Tests:
 
 ## Phase 5 — Artifacts
 
+**Status: done.**
+
 Deliverables: artifact upload for image/video/audio (T1), download (T2), message-with-artifact + optional reply, MIME/size validation, media served from `MEDIA_ROOT`.
 
 Tests:
@@ -83,6 +95,8 @@ Tests:
 
 ## Phase 6 — Frontend (React + Vite)
 
+**Status: done.**
+
 Deliverables: SPA with Telegram-like UI — auth screens (OTP request/verify/register), left sidebar (chat list, contacts, search), right pane (message bubbles, reply preview, input, attach menu), group creation (private/public), invite accept dialog, profile page, block button, dark theme.
 
 Stack: Vite + React + TypeScript, react-router, TanStack Query (data fetching), CSS variables (Telegram-like palette).
@@ -92,6 +106,8 @@ Tests (this phase): component tests via Vitest + Testing Library for critical co
 ---
 
 ## Phase 7 — Playwright e2e
+
+**Status: done.**
 
 Deliverables: `frontend/e2e/` with Playwright config (dev servers started automatically), specs covering user journeys:
 1. Register → land in empty chat list.
@@ -104,11 +120,15 @@ Deliverables: `frontend/e2e/` with Playwright config (dev servers started automa
 
 ## Phase 8 — Nginx + Docker + docs
 
+**Status: done.**
+
 Deliverables: `deploy/nginx.conf` (static frontend build, `/media/` alias, `/api` proxy to uvicorn), `docker-compose.yml` (backend + frontend build + nginx), README run instructions, final endpoint table refresh in [04-api-endpoints.md](04-api-endpoints.md).
 
 ---
 
 ## Definition of done (global)
+
+**Status: done** — backend suite green (230/230: unit + integration + e2e), Playwright e2e green (7/7). Typecheck/lint/pyright jobs only exist in `.gitlab-ci.yml` when present; none configured in this repo yet.
 
 - All phases' tests green: `pytest` (unit+integration+e2e) and `playwright test`.
 - Full typing; mypy/pyright clean (per CI jobs in `.gitlab-ci.yml`).
