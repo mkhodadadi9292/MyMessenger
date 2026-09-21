@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api, uploadArtifact } from '../api'
 import type { ChatOut, ContactOut, MemberOut, MessageOut, UserPublic } from '../types'
 import { MessageBubble } from './MessageBubble'
+import { realtime } from '../ws'
 
 interface Props {
   user: UserPublic
@@ -42,8 +43,23 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         .catch(() => {})
     }
     load()
-    const timer = setInterval(load, 2000)
-    return () => clearInterval(timer)
+    realtime.subscribe(chatId)
+    const offEvent = realtime.onEvent((event) => {
+      if (event.type === 'message.new' && event.message.chat_id === chatId) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === event.message.id) ? prev : [event.message, ...prev],
+        )
+      }
+    })
+    // polling is only a fallback while the websocket is down
+    const timer = setInterval(() => {
+      if (!realtime.connected) load()
+    }, 2000)
+    return () => {
+      offEvent()
+      clearInterval(timer)
+      realtime.unsubscribe(chatId)
+    }
   }, [chatId])
 
   useEffect(() => {

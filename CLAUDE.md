@@ -61,6 +61,15 @@ docker compose down -v         # reset data
 - **Playwright e2e DB**: the backend webServer command wipes and migrates `data/e2e-playwright.db` itself (webServers start before globalSetup, so wiping in globalSetup corrupts the running backend). Specs use per-run unique users (`uniqueUser()` in `frontend/e2e/helpers.ts`).
 - **Responsive** (see `PLAN/07-responsive-ui.md`): breakpoint `max-width: 768px` — mobile is a single pane (list ↔ chat via `back-button`, pure CSS switching with `.chat-open`); desktop is two-pane. Mobile behavior is covered by `frontend/e2e/responsive.spec.ts` (390×844 viewport); keep that spec updated when changing layout behavior.
 
+## Realtime (WebSocket)
+
+- `/ws?token=<access_token>` — one connection per user; client sends `subscribe/unsubscribe` per chat, `message.send` (text+reply) and `ping`.
+- Server events: `message.new` (full message payload incl. reply preview), `chat.list_changed` (chat-list refresh signal), `message.sent`, `error`.
+- REST endpoints still broadcast: sends/opens/joins notify via `app.state.realtime` (`ConnectionManager` in `app/infrastructure/realtime.py`, helpers in `app/api/realtime.py`).
+- Frontend (`frontend/src/ws.ts`): auto-reconnect + resubscribe; **polling remains only as a fallback** while the socket is down.
+- Proxies: Vite dev (`/ws` with `ws: true`) and `deploy/nginx.conf` (`Upgrade`/`Connection` headers).
+- WS tests: `tests/e2e/test_websocket.py` (real server + `websockets` client).
+
 ## Not in scope for v1
 
-Notifications/push — message model and service seams are ready for it (`PLAN/README.md`). Realtime delivery is currently short polling (messages 2s, chat list 3s).
+Notifications/push — message model and service seams are ready for it (`PLAN/README.md`).

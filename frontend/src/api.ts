@@ -23,6 +23,10 @@ export function hasSession(): boolean {
   return accessToken !== null
 }
 
+export function getAccessToken(): string | null {
+  return accessToken
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,

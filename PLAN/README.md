@@ -32,4 +32,4 @@ Telegram-like messenger. Backend: Python + FastAPI (REST). Frontend: React + Vit
 
 **Test-first rule:** every phase writes its tests (unit / integration / e2e) in the `tests/` tree, in the same phase as the feature — starting with Phase 0 which creates the test infrastructure itself.
 
-Notifications are explicitly out of scope for v1, but the message model and service APIs are designed so notifications can be added later without breaking changes.
+Realtime delivery is implemented via **WebSocket** (`/ws` endpoint with per-chat subscriptions; REST stays as the send path and polling as an automatic fallback). Notifications/push remain out of scope for v1 — the message model and service APIs are designed so they can be added later without breaking changes.

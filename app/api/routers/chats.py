@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from app.api.deps import get_chat_service, get_current_user
+from app.api.deps import get_chat_service, get_current_user, get_member_repo
+from app.api.realtime import notify_chat_list_changed
 from app.api.schemas.common import chat_to_out, member_to_out, message_to_out, user_to_public
 from app.application.chat_service import ChatService
 from app.domain.entities import User
+from app.infrastructure.repositories.chat import SqlChatMemberRepository
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 
@@ -50,10 +52,14 @@ async def list_chats(
 @router.post("/private")
 async def open_private_chat(
     body: PrivateChatIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
 ) -> dict:
     chat = await service.open_private_chat(current_user.id, body.user_id)
+    await notify_chat_list_changed(
+        request.app.state.realtime, {current_user.id, body.user_id}
+    )
     return chat_to_out(chat).model_dump()
 
 
@@ -127,10 +133,14 @@ async def remove_member(
 @router.post("/{chat_id}/join")
 async def join_group(
     chat_id: int,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    members: SqlChatMemberRepository = Depends(get_member_repo),
 ) -> dict:
     await service.join_group(current_user.id, chat_id)
+    member_ids = {m.user_id for m in await members.list_by_chat(chat_id)}
+    await notify_chat_list_changed(request.app.state.realtime, member_ids)
     return {"ok": True}
 
 

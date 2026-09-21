@@ -7,6 +7,7 @@ import { ContactsPage } from './components/ContactsPage'
 import { SettingsPage } from './components/SettingsPage'
 import { Sidebar } from './components/Sidebar'
 import type { ChatListItem, UserPublic } from './types'
+import { realtime } from './ws'
 
 type View = 'main' | 'settings' | 'contacts'
 
@@ -53,8 +54,18 @@ export default function App() {
         .catch(() => {})
     }
     load()
-    const timer = setInterval(load, 3000)
-    return () => clearInterval(timer)
+    const offEvent = realtime.onEvent((event) => {
+      if (event.type === 'chat.list_changed') load()
+    })
+    realtime.connect()
+    // polling is only a fallback while the websocket is down
+    const timer = setInterval(() => {
+      if (!realtime.connected) load()
+    }, 3000)
+    return () => {
+      offEvent()
+      clearInterval(timer)
+    }
   }, [user])
 
   if (loading) return <div className="splash">Loading…</div>
@@ -64,6 +75,7 @@ export default function App() {
   }
 
   const logout = () => {
+    realtime.disconnect()
     clearTokens()
     setUser(null)
     setSelectedChatId(null)

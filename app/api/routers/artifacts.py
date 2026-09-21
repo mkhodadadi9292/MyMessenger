@@ -1,11 +1,18 @@
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from app.api.deps import get_artifact_service, get_current_user, get_message_service
+from app.api.deps import (
+    get_artifact_service,
+    get_current_user,
+    get_member_repo,
+    get_message_service,
+)
+from app.api.realtime import broadcast_new_message
 from app.api.routers.messages import _message_dicts
 from app.application.artifact_service import ArtifactService
 from app.application.message_service import MessageService
 from app.domain.entities import User
+from app.infrastructure.repositories.chat import SqlChatMemberRepository
 from app.domain.value_objects import ArtifactKind
 
 router = APIRouter(tags=["artifacts"])
@@ -14,12 +21,14 @@ router = APIRouter(tags=["artifacts"])
 @router.post("/chats/{chat_id}/artifacts")
 async def upload_artifact(
     chat_id: int,
+    request: Request,
     kind: ArtifactKind = Form(...),
     reply_to_id: int | None = Form(None),
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     service: ArtifactService = Depends(get_artifact_service),
     message_service: MessageService = Depends(get_message_service),
+    members: SqlChatMemberRepository = Depends(get_member_repo),
 ) -> dict:
     content = await file.read()
     message, artifact = await service.upload(
@@ -31,7 +40,17 @@ async def upload_artifact(
         content,
         reply_to_id,
     )
-    return (await _message_dicts(message_service, [(message, current_user, artifact)]))[0]
+    payload = (await _message_dicts(message_service, [(message, current_user, artifact)]))[0]
+    await broadcast_new_message(
+        request.app.state.realtime,
+        members,
+        message_service,
+        message,
+        current_user,
+        chat_id,
+        artifact,
+    )
+    return payload
 
 
 @router.get("/artifacts/{artifact_id}/download")

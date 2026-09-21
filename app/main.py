@@ -8,9 +8,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.errors import register_error_handlers
-from app.api.routers import artifacts, auth, blocked, chats, contacts, health, invites, messages, users
+from app.api.routers import (
+    artifacts,
+    auth,
+    blocked,
+    chats,
+    contacts,
+    health,
+    invites,
+    messages,
+    users,
+    ws,
+)
 from app.config import Settings, get_settings
 from app.infrastructure.auth.otp import LogOtpSender
+from app.infrastructure.realtime import ConnectionManager
 from app.infrastructure.db.session import create_engine_and_sessionmaker
 
 API_PREFIX = "/api/v1"
@@ -45,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.otp_sender = LogOtpSender()
+    app.state.realtime = ConnectionManager()
 
     app.add_middleware(
         CORSMiddleware,
@@ -68,6 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         artifacts.router,
     ):
         app.include_router(router, prefix=API_PREFIX)
+    app.include_router(ws.router)
     register_error_handlers(app)
 
     return app

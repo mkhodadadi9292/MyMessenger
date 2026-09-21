@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user, get_message_service
+from app.api.deps import get_current_user, get_member_repo, get_message_service
 from app.api.schemas.common import message_to_out, reply_preview_to_out
+from app.api.realtime import broadcast_new_message
 from app.application.message_service import MessageService
 from app.domain.entities import Artifact, Message, User
+from app.infrastructure.repositories.chat import SqlChatMemberRepository
 
 router = APIRouter(tags=["messages"])
 
@@ -49,11 +51,17 @@ async def list_messages(
 async def send_message(
     chat_id: int,
     body: MessageCreateIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: MessageService = Depends(get_message_service),
+    members: SqlChatMemberRepository = Depends(get_member_repo),
 ) -> dict:
     message = await service.send_message(current_user.id, chat_id, body.text, body.reply_to_id)
-    return (await _message_dicts(service, [(message, current_user, None)]))[0]
+    payload = (await _message_dicts(service, [(message, current_user, None)]))[0]
+    await broadcast_new_message(
+        request.app.state.realtime, members, service, message, current_user, chat_id
+    )
+    return payload
 
 
 @router.patch("/messages/{message_id}")
