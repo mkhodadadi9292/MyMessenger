@@ -90,3 +90,74 @@ async def test_remove_non_contact_404(client, user_factory) -> None:
         f"{API}/contacts/{alice['user']['id']}", headers=auth_headers(bob["access_token"])
     )
     assert response.status_code == 404
+
+
+async def test_rename_contact(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    await client.post(
+        f"{API}/contacts",
+        json={"identifier": "alice"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    response = await client.patch(
+        f"{API}/contacts/{alice['user']['id']}",
+        json={"name": "My Best Friend"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "My Best Friend"
+    assert body["username"] == "alice"
+
+    listing = await client.get(f"{API}/contacts", headers=auth_headers(bob["access_token"]))
+    assert listing.json()[0]["name"] == "My Best Friend"
+
+
+async def test_rename_contact_clear_name(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    await client.post(
+        f"{API}/contacts",
+        json={"identifier": "alice"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    await client.patch(
+        f"{API}/contacts/{alice['user']['id']}",
+        json={"name": "Custom"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    cleared = await client.patch(
+        f"{API}/contacts/{alice['user']['id']}",
+        json={"name": None},
+        headers=auth_headers(bob["access_token"]),
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["name"] is None
+
+
+async def test_rename_non_contact_404(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    response = await client.patch(
+        f"{API}/contacts/{alice['user']['id']}",
+        json={"name": "X"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    assert response.status_code == 404
+
+
+async def test_rename_contact_empty_name_400(client, user_factory) -> None:
+    alice = await user_factory(username="alice")
+    bob = await user_factory(username="bob")
+    await client.post(
+        f"{API}/contacts",
+        json={"identifier": "alice"},
+        headers=auth_headers(bob["access_token"]),
+    )
+    response = await client.patch(
+        f"{API}/contacts/{alice['user']['id']}",
+        json={"name": "   "},
+        headers=auth_headers(bob["access_token"]),
+    )
+    assert response.status_code == 400

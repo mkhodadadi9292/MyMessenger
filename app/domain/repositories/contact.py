@@ -17,6 +17,10 @@ class ContactRepository(AbstractRepository[Contact, int]):
     async def remove(self, owner_id: int, contact_id: int) -> None:
         ...
 
+    @abstractmethod
+    async def rename(self, owner_id: int, contact_id: int, name: str | None) -> Contact | None:
+        ...
+
 
 class BlockRepository(AbstractRepository[Block, int]):
     @abstractmethod

@@ -47,3 +47,21 @@ class ContactService:
         if await self._contacts.get_pair(owner_id, contact_id) is None:
             raise NotFoundError("contact not found")
         await self._contacts.remove(owner_id, contact_id)
+
+    async def rename_contact(
+        self, owner_id: int, contact_id: int, name: str | None
+    ) -> tuple[Contact, User]:
+        contact = await self._contacts.get_pair(owner_id, contact_id)
+        if contact is None:
+            raise NotFoundError("contact not found")
+        if name is not None:
+            name = name.strip()
+            if not name:
+                raise ValidationError("contact name cannot be empty")
+            if len(name) > 64:
+                raise ValidationError("contact name is too long")
+        updated = await self._contacts.rename(owner_id, contact_id, name)
+        target = await self._users.get(contact_id)
+        if target is None:
+            raise NotFoundError("user not found")
+        return updated, target

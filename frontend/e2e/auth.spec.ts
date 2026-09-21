@@ -7,7 +7,8 @@ test('register, logout and login again', async ({ page }) => {
   await registerViaUi(page, alice)
   await expect(page.getByTestId('chat-list')).toBeVisible()
 
-  await page.getByTitle('Logout').click()
+  await page.getByTestId('settings-button').click()
+  await page.getByTestId('settings-logout').click()
   await expect(page.getByTestId('identifier')).toBeVisible()
 
   await loginViaUi(page, alice)

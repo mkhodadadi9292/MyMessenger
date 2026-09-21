@@ -75,6 +75,7 @@ export interface ContactOut {
   first_name: string
   last_name: string | null
   avatar_url: string | null
+  name: string | null
 }
 
 export interface AuthTokens {

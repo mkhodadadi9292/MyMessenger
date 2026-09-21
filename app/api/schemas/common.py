@@ -154,13 +154,15 @@ class ContactOut(BaseModel):
     first_name: str
     last_name: str | None = None
     avatar_url: str | None = None
+    name: str | None = None
 
 
-def contact_to_out(user: User) -> ContactOut:
+def contact_to_out(user: User, name: str | None = None) -> ContactOut:
     return ContactOut(
         user_id=user.id,
         username=str(user.username),
         first_name=user.first_name,
         last_name=user.last_name,
         avatar_url=f"/media/{user.avatar_path}" if user.avatar_path else None,
+        name=name,
     )

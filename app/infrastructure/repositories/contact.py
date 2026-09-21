@@ -12,6 +12,7 @@ def contact_to_entity(model: ContactModel) -> Contact:
         owner_id=model.owner_id,
         contact_id=model.contact_id,
         created_at=model.created_at,
+        name=model.name,
     )
 
 
@@ -56,6 +57,18 @@ class SqlContactRepository(ContactRepository):
             )
         )
         await self._session.flush()
+
+    async def rename(self, owner_id: int, contact_id: int, name: str | None) -> Contact | None:
+        model = await self._session.scalar(
+            select(ContactModel).where(
+                ContactModel.owner_id == owner_id, ContactModel.contact_id == contact_id
+            )
+        )
+        if model is None:
+            return None
+        model.name = name
+        await self._session.flush()
+        return contact_to_entity(model)
 
     async def delete(self, entity: Contact) -> None:
         await self.remove(entity.owner_id, entity.contact_id)

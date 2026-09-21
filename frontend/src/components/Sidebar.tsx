@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { api } from '../api'
 import { formatTime } from '../time'
-import type { ChatListItem, ContactOut, InviteOut, UserPublic } from '../types'
+import type { ChatListItem, InviteOut, UserPublic } from '../types'
 
 interface SearchResult {
   id: number
@@ -15,6 +15,8 @@ interface Props {
   chats: ChatListItem[]
   selectedChatId: number | null
   onSelectChat: (id: number) => void
+  onOpenSettings: () => void
+  onOpenContacts: () => void
   onLogout: () => void
 }
 
@@ -26,16 +28,19 @@ function chatTitle(chat: ChatListItem, me: UserPublic): string {
   return 'Private chat'
 }
 
-export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }: Props) {
+export function Sidebar({
+  user,
+  chats,
+  selectedChatId,
+  onSelectChat,
+  onOpenSettings,
+  onOpenContacts,
+}: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [contacts, setContacts] = useState<ContactOut[]>([])
   const [invites, setInvites] = useState<InviteOut[]>([])
   const [showInvites, setShowInvites] = useState(false)
-  const [showNewGroup, setShowNewGroup] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
-  const [groupTitle, setGroupTitle] = useState('')
-  const [groupPublic, setGroupPublic] = useState(false)
   const [joinValue, setJoinValue] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -46,9 +51,6 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
   }
 
   useEffect(() => {
-    api<ContactOut[]>('/contacts')
-      .then(setContacts)
-      .catch(() => {})
     refreshInvites()
   }, [])
 
@@ -73,8 +75,6 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier }),
       })
-      const updated = await api<ContactOut[]>('/contacts')
-      setContacts(updated)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'add failed')
     }
@@ -93,22 +93,6 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
       setSearchResults([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to open chat')
-    }
-  }
-
-  const createGroup = async () => {
-    setError(null)
-    try {
-      const chat = await api<ChatListItem>('/chats/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: groupTitle, is_public: groupPublic }),
-      })
-      setShowNewGroup(false)
-      setGroupTitle('')
-      onSelectChat(chat.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'failed to create group')
     }
   }
 
@@ -145,15 +129,27 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
         <span className="me-name" data-testid="me-name">
           {user.username}
         </span>
-        <button className="icon-button" onClick={onLogout} title="Logout">
-          ⏻
-        </button>
+        <div className="header-buttons">
+          <button
+            className="icon-button"
+            data-testid="contacts-button"
+            title="Contacts"
+            onClick={onOpenContacts}
+          >
+            👥
+          </button>
+          <button
+            className="icon-button"
+            data-testid="settings-button"
+            title="Settings"
+            onClick={onOpenSettings}
+          >
+            ⚙
+          </button>
+        </div>
       </div>
 
       <div className="sidebar-actions">
-        <button data-testid="new-group" onClick={() => setShowNewGroup(true)}>
-          New group
-        </button>
         <button data-testid="join-group" onClick={() => setShowJoin(true)}>
           Join
         </button>
@@ -195,30 +191,6 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {showNewGroup && (
-        <div className="panel" data-testid="new-group-panel">
-          <h3>New group</h3>
-          <input
-            data-testid="group-title"
-            placeholder="Group title"
-            value={groupTitle}
-            onChange={(e) => setGroupTitle(e.target.value)}
-          />
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              data-testid="group-public"
-              checked={groupPublic}
-              onChange={(e) => setGroupPublic(e.target.checked)}
-            />
-            Public group
-          </label>
-          <button data-testid="create-group" disabled={!groupTitle} onClick={createGroup}>
-            Create
-          </button>
         </div>
       )}
 
@@ -303,20 +275,6 @@ export function Sidebar({ user, chats, selectedChatId, onSelectChat, onLogout }:
         {chats.length === 0 && (
           <p className="muted">No chats yet — search for a user to start messaging.</p>
         )}
-      </div>
-
-      <div className="contacts-list">
-        <h3>Contacts ({contacts.length})</h3>
-        {contacts.map((contact) => (
-          <div key={contact.user_id} className="contact-row">
-            <span>
-              {contact.username} ({contact.first_name})
-            </span>
-            <button data-testid={`contact-message-${contact.username}`} onClick={() => openPrivateChat(contact.user_id)}>
-              Message
-            </button>
-          </div>
-        ))}
       </div>
     </aside>
   )

@@ -117,6 +117,7 @@ class Contact:
     owner_id: int
     contact_id: int
     created_at: datetime
+    name: str | None = None
 
 
 @dataclass

@@ -13,10 +13,10 @@ test('private group: create, invite, accept, message', async ({ browser }) => {
   await registerViaUi(alicePage, alice)
   await registerViaUi(bobPage, bob)
 
-  // alice creates a private group
-  await alicePage.getByTestId('new-group').click()
-  await alicePage.getByTestId('group-title').fill('Team')
-  await alicePage.getByTestId('create-group').click()
+  // alice creates a private group (group creation lives in Settings)
+  await alicePage.getByTestId('settings-button').click()
+  await alicePage.getByTestId('settings-group-title').fill('Team')
+  await alicePage.getByTestId('settings-create-group').click()
   await expect(alicePage.getByTestId('chat-title')).toHaveText('Team')
 
   // alice invites bob by username (input clears only after the POST lands)
@@ -52,10 +52,10 @@ test('public group: join by id', async ({ browser }) => {
   await registerViaUi(alicePage, alice)
   await registerViaUi(bobPage, bob)
 
-  await alicePage.getByTestId('new-group').click()
-  await alicePage.getByTestId('group-title').fill('Public Room')
-  await alicePage.getByTestId('group-public').check()
-  await alicePage.getByTestId('create-group').click()
+  await alicePage.getByTestId('settings-button').click()
+  await alicePage.getByTestId('settings-group-title').fill('Public Room')
+  await alicePage.getByTestId('settings-group-public').check()
+  await alicePage.getByTestId('settings-create-group').click()
   await expect(alicePage.getByTestId('chat-title')).toHaveText('Public Room')
 
   const token = await alicePage.evaluate(() => localStorage.getItem('access_token'))

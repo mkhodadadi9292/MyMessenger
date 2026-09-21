@@ -26,9 +26,10 @@ Base URL: `/api/v1`. Auth: `Authorization: Bearer <access_token>` (marked 🔒).
 
 | # | Method | Path | Body / Params | Response | Auth |
 |---|---|---|---|---|---|
-| C1 | GET | `/contacts` | — | `[{user_id, username, first_name, last_name, avatar_url}]` | 🔒 |
+| C1 | GET | `/contacts` | — | `[{user_id, username, first_name, last_name, avatar_url, name}]` (name = custom contact name, null if unset) | 🔒 |
 | C2 | POST | `/contacts` | `{identifier}` (username or phone) | created contact entry | 🔒 |
-| C3 | DELETE | `/contacts/{user_id}` | — | `{ok:true}` | 🔒 |
+| C3 | PATCH | `/contacts/{user_id}` | `{name}` (custom display name; null clears it) | updated contact entry | 🔒 |
+| C4 | DELETE | `/contacts/{user_id}` | — | `{ok:true}` | 🔒 |
 
 ## Blocking
 
