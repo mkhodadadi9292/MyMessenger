@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { loginViaUi, registerViaUi, uniqueUser } from './helpers'
+import { getOtpCode, loginViaUi, registerViaUi, uniqueUser } from './helpers'
 
 test('register, logout and login again', async ({ page }) => {
   const alice = uniqueUser('alice')
@@ -42,4 +42,37 @@ test('registration with duplicate username shows conflict', async ({ browser }) 
 
   await firstContext.close()
   await secondContext.close()
+})
+
+test('register form validates the username policy client-side', async ({ browser }) => {
+  const context = await browser.newContext()
+  const page = await context.newPage()
+  const carol = uniqueUser('carol')
+
+  await page.goto('/')
+  await page.getByTestId('identifier').fill(carol.identifier)
+  await page.getByTestId('request-code').click()
+  await expect(page.getByTestId('code')).toBeVisible()
+  const code = await getOtpCode(page, carol.identifier)
+  await page.getByTestId('code').fill(code)
+  await page.getByTestId('verify-code').click()
+  await page.getByTestId('first-name').fill(carol.firstName)
+
+  // invalid username -> inline error, submit disabled
+  await page.getByTestId('username').fill('BAD NAME!')
+  await expect(page.getByTestId('username-error')).toContainText('lowercase letter')
+  await expect(page.getByTestId('register')).toBeDisabled()
+
+  await page.getByTestId('username').fill('123abc')
+  await expect(page.getByTestId('username-error')).toContainText('lowercase letter')
+  await expect(page.getByTestId('register')).toBeDisabled()
+
+  // valid username -> error gone, submit enabled, registration succeeds
+  await page.getByTestId('username').fill(carol.username)
+  await expect(page.getByTestId('username-error')).toBeHidden()
+  await expect(page.getByTestId('register')).toBeEnabled()
+  await page.getByTestId('register').click()
+  await expect(page.getByTestId('me-name')).toHaveText(carol.username)
+
+  await context.close()
 })

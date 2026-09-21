@@ -12,12 +12,27 @@ from app.domain.value_objects import (
 
 
 class TestUsername:
-    @pytest.mark.parametrize("value", ["ali", "a1_2", "user_name", "abc", "a" * 32])
+    @pytest.mark.parametrize("value", ["ali", "a1_2", "user_name", "abc", "a" * 32, "a_1"])
     def test_valid(self, value: str) -> None:
         assert Username(value).value == value
 
     @pytest.mark.parametrize(
-        "value", ["ab", "a" * 33, "Ali", "a-b", "a b", "a.b", "a/b", "", "a!b", "a b c"]
+        "value",
+        [
+            "ab",
+            "a" * 33,
+            "Ali",
+            "a-b",
+            "a b",
+            "a.b",
+            "a/b",
+            "",
+            "a!b",
+            "a b c",
+            "123",
+            "_abc",
+            "1abc",
+        ],
     )
     def test_invalid(self, value: str) -> None:
         with pytest.raises(ValidationError):

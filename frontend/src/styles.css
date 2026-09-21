@@ -495,3 +495,9 @@ h3 {
     margin: 16px;
   }
 }
+
+.field-error {
+  color: #e08a96;
+  font-size: 12px;
+  margin-top: -4px;
+}

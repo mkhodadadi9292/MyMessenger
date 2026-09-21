@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import { api, setTokens } from '../api'
 import type { AuthTokens, UserPublic } from '../types'
+import { validateUsername } from '../username'
 
 interface VerifyResult {
   registered?: boolean
@@ -132,6 +133,11 @@ export function AuthScreen({ onAuthed }: { onAuthed: (user: UserPublic) => void 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
+            {username.trim() !== '' && validateUsername(username) !== null && (
+              <div className="field-error" data-testid="username-error">
+                {validateUsername(username)}
+              </div>
+            )}
             <label htmlFor="first-name">First name</label>
             <input
               id="first-name"
@@ -149,7 +155,7 @@ export function AuthScreen({ onAuthed }: { onAuthed: (user: UserPublic) => void 
             />
             <button
               data-testid="register"
-              disabled={busy || !username || !firstName}
+              disabled={busy || !username || !firstName || validateUsername(username) !== null}
               onClick={register}
             >
               Register

@@ -54,6 +54,7 @@ docker compose down -v         # reset data
 
 - **Test-first**: every feature ships unit + integration + e2e tests in the same change; a phase is done only when its tests pass (see `PLAN/05-phases.md`).
 - **Privacy**: `phone` and `email` never appear in API responses; phone search is exact-match only (see `PLAN/01-requirements.md` FR-1.5).
+- **Username policy** (single rule, both sides): 3–32 chars, must start with a lowercase letter, only `a-z 0-9 _`. Backend: `Username` VO in `app/domain/value_objects.py`. Frontend: `frontend/src/username.ts` (`validateUsername`) with inline error + disabled submit in `AuthScreen`. Keep both in sync when changing the policy.
 - **Blocking** is enforced in the application layer: messaging, profile view, search results, contact add, invites (see `PLAN/01-requirements.md` FR-8).
 - **Test isolation** (see `PLAN/06-testing-strategy.md`): tests use a shared in-memory SQLite engine (StaticPool) swapped in by `tests/conftest.py` — file-backed DDL is ~150ms/statement on this machine, so do NOT switch tests back to file DBs. Real/dev DB (`data/messenger.db`, `media.db`) must never be touched by tests.
 - **OTP in tests/e2e**: codes come from the capturing sender (`tests/fakes.py`) or the debug endpoint `GET /api/v1/auth/otp/dev/latest?identifier=...` (enabled only when `DEBUG=true`).

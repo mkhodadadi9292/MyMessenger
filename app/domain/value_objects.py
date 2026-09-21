@@ -3,14 +3,19 @@ from enum import StrEnum
 
 from app.domain.exceptions import ValidationError
 
-_USERNAME_RE = re.compile(r"^[a-z0-9_]{3,32}$")
+# Policy (mirrored in frontend/src/username.ts): 3-32 chars, must start
+# with a lowercase letter, only a-z, 0-9 and _ allowed.
+_USERNAME_RE = re.compile(r"^[a-z][a-z0-9_]{2,31}$")
 _PHONE_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
 class Username:
     def __init__(self, value: str) -> None:
         if not _USERNAME_RE.fullmatch(value):
-            raise ValidationError("username must be 3-32 chars of a-z, 0-9 or _")
+            raise ValidationError(
+                "username must be 3-32 chars, start with a lowercase letter, "
+                "and contain only a-z, 0-9 or _"
+            )
         self.value = value
 
     def __eq__(self, other: object) -> bool:
