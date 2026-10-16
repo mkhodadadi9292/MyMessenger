@@ -150,6 +150,7 @@ def get_invite_service(
 def get_reaction_repo(db: AsyncSession = Depends(get_db)) -> SqlReactionRepository:
     return SqlReactionRepository(db)
 
+
 def get_message_service(
     messages: SqlMessageRepository = Depends(get_message_repo),
     artifacts: SqlArtifactRepository = Depends(get_artifact_repo),
