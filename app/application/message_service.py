@@ -1,13 +1,13 @@
-from app.domain.entities import Artifact, Chat, Message, User
 from app.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
 from app.domain.pagination import validate_limit
 from app.domain.repositories.chat import ChatMemberRepository, ChatRepository
 from app.domain.repositories.contact import BlockRepository
-from app.domain.repositories.message import ArtifactRepository, MessageRepository
 from app.domain.repositories.user import UserRepository
 from app.domain.time import utcnow
 from app.domain.value_objects import ChatType
-
+from app.domain.entities import Artifact, Chat, Message, Reaction, User
+from app.domain.repositories.message import ArtifactRepository, MessageRepository, ReactionRepository
+from app.domain.value_objects import ChatType, ReactionCode
 
 class MessageService:
     def __init__(
@@ -18,6 +18,7 @@ class MessageService:
         members: ChatMemberRepository,
         users: UserRepository,
         blocks: BlockRepository,
+        reactions: ReactionRepository,
     ) -> None:
         self._messages = messages
         self._artifacts = artifacts
@@ -25,6 +26,7 @@ class MessageService:
         self._members = members
         self._users = users
         self._blocks = blocks
+        self._reactions = reactions
 
     async def _require_membership(self, chat_id: int, actor_id: int) -> Chat:
         chat = await self._chats.get(chat_id)
@@ -137,3 +139,45 @@ class MessageService:
         message.text = None
         message.deleted_at = utcnow()
         await self._messages.update(message)
+
+    async def _get_reactable(self, actor_id: int, message_id: int) -> Message:
+        message = await self._messages.get(message_id)
+        if message is None:
+            raise NotFoundError("message not found")
+        chat = await self._require_membership(message.chat_id, actor_id)
+        if message.deleted_at is not None:
+            raise ValidationError("cannot react to a deleted message")
+        await self._ensure_can_message(chat, actor_id)
+        return message
+
+    async def set_reaction(self, actor_id: int, message_id: int, code: str) -> Message:
+        reaction_code = ReactionCode.parse(code)
+        message = await self._get_reactable(actor_id, message_id)
+        existing = await self._reactions.get_pair(message.id, actor_id)
+        if existing is None:
+            await self._reactions.add(
+                Reaction(
+                    id=0,
+                    message_id=message.id,
+                    user_id=actor_id,
+                    code=reaction_code,
+                    created_at=utcnow(),
+                )
+            )
+        elif existing.code is not reaction_code:
+            existing.code = reaction_code
+            await self._reactions.update(existing)
+        return message
+
+    async def remove_reaction(self, actor_id: int, message_id: int) -> Message:
+        message = await self._get_reactable(actor_id, message_id)
+        existing = await self._reactions.get_pair(message.id, actor_id)
+        if existing is not None:
+            await self._reactions.delete(existing)
+        return message
+
+    async def build_reactions(self, messages: list[Message]) -> dict[int, list[Reaction]]:
+        grouped: dict[int, list[Reaction]] = {}
+        for reaction in await self._reactions.list_by_message_ids([m.id for m in messages]):
+            grouped.setdefault(reaction.message_id, []).append(reaction)
+        return grouped

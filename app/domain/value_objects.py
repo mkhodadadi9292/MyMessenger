@@ -83,3 +83,18 @@ class ArtifactKind(StrEnum):
 
     def accepts_mime(self, mime: str) -> bool:
         return mime in _MIME_TYPES_BY_KIND[self.value]
+
+class ReactionCode(StrEnum):
+    LIKE = "like"
+    HEART = "heart"
+    LAUGH = "laugh"
+    WOW = "wow"
+    SAD = "sad"
+    FIRE = "fire"
+
+    @classmethod
+    def parse(cls, value: str) -> "ReactionCode":
+        try:
+            return cls(value)
+        except ValueError:
+            raise ValidationError(f"unsupported reaction: {value}") from None

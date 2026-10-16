@@ -8,6 +8,7 @@ from app.domain.value_objects import (
     InviteStatus,
     MemberRole,
     Phone,
+    ReactionCode,
     Username,
 )
 
@@ -146,4 +147,13 @@ class RefreshSession:
     token_hash: str
     expires_at: datetime
     revoked_at: datetime | None
+    created_at: datetime
+
+
+@dataclass
+class Reaction:
+    id: int
+    message_id: int
+    user_id: int
+    code: ReactionCode
     created_at: datetime

@@ -1,4 +1,5 @@
-import type { AuthTokens, MessageOut } from './types'
+import type { ReactionCode } from './reactions'
+import type { AuthTokens, MessageOut, ReactionsChanged } from './types'
 
 const API = '/api/v1'
 
@@ -89,4 +90,16 @@ export async function uploadArtifact(
   form.append('kind', kind)
   if (replyToId !== null) form.append('reply_to_id', String(replyToId))
   return api<MessageOut>(`/chats/${chatId}/artifacts`, { method: 'POST', body: form })
+}
+
+export function setReaction(messageId: number, code: ReactionCode): Promise<ReactionsChanged> {
+  return api<ReactionsChanged>(`/messages/${messageId}/reaction`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+}
+
+export function removeReaction(messageId: number): Promise<ReactionsChanged> {
+  return api<ReactionsChanged>(`/messages/${messageId}/reaction`, { method: 'DELETE' })
 }

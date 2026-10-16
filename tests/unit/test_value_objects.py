@@ -8,6 +8,7 @@ from app.domain.value_objects import (
     MemberRole,
     Phone,
     Username,
+    ReactionCode,
 )
 
 
@@ -89,3 +90,14 @@ def test_enum_values() -> None:
     assert {m.value for m in MemberRole} == {"owner", "admin", "member"}
     assert {m.value for m in InviteStatus} == {"pending", "accepted", "declined", "expired"}
     assert {m.value for m in ArtifactKind} == {"image", "video", "audio"}
+    assert {m.value for m in ReactionCode} == {"like", "heart", "laugh", "wow", "sad", "fire"}
+
+class TestReactionCode:
+    @pytest.mark.parametrize("value", ["like", "heart", "laugh", "wow", "sad", "fire"])
+    def test_parse_valid(self, value: str) -> None:
+        assert ReactionCode.parse(value).value == value
+
+    @pytest.mark.parametrize("value", ["", "LIKE", "👍", "poop"])
+    def test_parse_invalid(self, value: str) -> None:
+        with pytest.raises(ValidationError):
+            ReactionCode.parse(value)

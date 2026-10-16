@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { api, uploadArtifact } from '../api'
-import type { ChatOut, ContactOut, MemberOut, MessageOut, UserPublic } from '../types'
+import { api, removeReaction, setReaction, uploadArtifact } from '../api'
+import type { ReactionCode } from '../reactions'
+import type { ChatOut, ContactOut, MemberOut, MessageOut, ReactionsChanged, UserPublic } from '../types'
 import { MessageBubble } from './MessageBubble'
 import { realtime } from '../ws'
 
@@ -9,6 +10,12 @@ interface Props {
   user: UserPublic
   chatId: number | null
   onBack?: () => void
+}
+
+function withReactions(messages: MessageOut[], change: ReactionsChanged): MessageOut[] {
+  return messages.map((m) =>
+    m.id === change.message_id ? { ...m, reactions: change.reactions } : m,
+  )
 }
 
 export function ChatWindow({ user, chatId, onBack }: Props) {
@@ -49,6 +56,9 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         setMessages((prev) =>
           prev.some((m) => m.id === event.message.id) ? prev : [event.message, ...prev],
         )
+      }
+      if (event.type === 'message.reactions_changed' && event.chat_id === chatId) {
+        setMessages((prev) => withReactions(prev, event))
       }
     })
     // polling is only a fallback while the websocket is down
@@ -102,6 +112,20 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
       setReplyTo(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed to send')
+    }
+  }
+
+  const react = async (message: MessageOut, code: ReactionCode) => {
+    setError(null)
+    const current = message.reactions.find((r) => r.user_ids.includes(user.id))
+    try {
+      const change =
+        current?.code === code
+          ? await removeReaction(message.id)
+          : await setReaction(message.id, code)
+      setMessages((prev) => withReactions(prev, change))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'failed to react')
     }
   }
 
@@ -199,7 +223,14 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         {/* API returns newest-first; render oldest-first so messages flow
             top-to-bottom by arrival time. */}
         {[...messages].reverse().map((message) => (
-          <MessageBubble key={message.id} message={message} me={user} onReply={setReplyTo} showSender={chat?.type === 'group'} />
+          <MessageBubble
+             key={message.id}
+             message={message}
+             me={user}
+             onReply={setReplyTo}
+             onReact={react}
+             showSender={chat?.type === 'group'}
+           />
         ))}
         <div ref={bottomRef} />
       </div>

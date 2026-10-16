@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
 from app.api.deps import get_current_user, get_member_repo, get_message_service
-from app.api.schemas.common import message_to_out, reply_preview_to_out
-from app.api.realtime import broadcast_new_message
+from app.api.schemas.common import message_to_out, reactions_to_out, reply_preview_to_out
+from app.api.realtime import broadcast_new_message, broadcast_reactions_changed
 from app.application.message_service import MessageService
 from app.domain.entities import Artifact, Message, User
 from app.infrastructure.repositories.chat import SqlChatMemberRepository
@@ -19,19 +19,26 @@ class MessageCreateIn(BaseModel):
 class MessageUpdateIn(BaseModel):
     text: str
 
+class ReactionIn(BaseModel):
+    code: str
 
 async def _message_dicts(
     service: MessageService, entries: list[tuple[Message, User | None, Artifact | None]]
 ) -> list[dict]:
     messages = [message for message, _, _ in entries]
     previews = await service.build_reply_previews(messages)
+    reactions = await service.build_reactions(messages)
     result = []
     for message, sender, artifact in entries:
         preview = None
         if message.reply_to_id is not None and message.reply_to_id in previews:
             target, target_sender, target_artifact = previews[message.reply_to_id]
             preview = reply_preview_to_out(target, target_sender, target_artifact)
-        result.append(message_to_out(message, sender, artifact, preview).model_dump())
+        result.append(
+            message_to_out(
+                message, sender, artifact, preview, reactions_to_out(reactions.get(message.id, []))
+            ).model_dump()
+        )
     return result
 
 
@@ -83,3 +90,40 @@ async def delete_message(
 ) -> dict:
     await service.delete_message(current_user.id, message_id)
     return {"ok": True}
+
+async def _reactions_payload(service: MessageService, message: Message) -> dict:
+    reactions = await service.build_reactions([message])
+    return {
+        "chat_id": message.chat_id,
+        "message_id": message.id,
+        "reactions": [
+            r.model_dump() for r in reactions_to_out(reactions.get(message.id, []))
+        ],
+    }
+
+
+@router.put("/messages/{message_id}/reaction")
+async def set_reaction(
+    message_id: int,
+    body: ReactionIn,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    service: MessageService = Depends(get_message_service),
+) -> dict:
+    message = await service.set_reaction(current_user.id, message_id, body.code)
+    payload = await _reactions_payload(service, message)
+    await broadcast_reactions_changed(request.app.state.realtime, payload)
+    return payload
+
+
+@router.delete("/messages/{message_id}/reaction")
+async def remove_reaction(
+    message_id: int,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    service: MessageService = Depends(get_message_service),
+) -> dict:
+    message = await service.remove_reaction(current_user.id, message_id)
+    payload = await _reactions_payload(service, message)
+    await broadcast_reactions_changed(request.app.state.realtime, payload)
+    return payload

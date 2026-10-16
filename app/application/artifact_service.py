@@ -4,7 +4,7 @@ from app.domain.entities import Artifact, Message
 from app.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
 from app.domain.repositories.chat import ChatMemberRepository, ChatRepository
 from app.domain.repositories.contact import BlockRepository
-from app.domain.repositories.message import ArtifactRepository, MessageRepository
+from app.domain.repositories.message import ArtifactRepository, MessageRepository, ReactionRepository
 from app.domain.repositories.user import UserRepository
 from app.domain.time import utcnow
 from app.domain.value_objects import ArtifactKind, ChatType
@@ -20,6 +20,7 @@ class ArtifactService:
         members: ChatMemberRepository,
         users: UserRepository,
         blocks: BlockRepository,
+        reactions: ReactionRepository,
         storage: LocalStorage,
         settings: Settings,
     ) -> None:
@@ -32,7 +33,7 @@ class ArtifactService:
         self._storage = storage
         self._settings = settings
         self._message_service = MessageService(
-            messages, artifacts, chats, members, users, blocks
+            messages, artifacts, chats, members, users, blocks, reactions
         )
 
     async def upload(
