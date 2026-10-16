@@ -2,8 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.domain.entities import Artifact, Chat, ChatMember, Message, User
-
+from app.domain.entities import Artifact, Chat, ChatMember, Message, Reaction, User
+from app.domain.value_objects import ReactionCode
 
 class UserPublic(BaseModel):
     id: int
@@ -88,6 +88,20 @@ def artifact_to_out(artifact: Artifact) -> ArtifactOut:
         url=f"/media/{artifact.file_path}",
     )
 
+class ReactionOut(BaseModel):
+    code: str
+    count: int
+    user_ids: list[int]
+
+
+def reactions_to_out(reactions: list[Reaction]) -> list[ReactionOut]:
+    users_by_code: dict[ReactionCode, list[int]] = {}
+    for reaction in reactions:
+        users_by_code.setdefault(reaction.code, []).append(reaction.user_id)
+    return [
+        ReactionOut(code=code.value, count=len(user_ids), user_ids=user_ids)
+        for code, user_ids in users_by_code.items()
+    ]
 
 class ReplyPreview(BaseModel):
     id: int
@@ -108,6 +122,7 @@ class MessageOut(BaseModel):
     created_at: datetime
     edited_at: datetime | None = None
     deleted_at: datetime | None = None
+    reactions: list[ReactionOut] = []
 
 
 def reply_preview_to_out(
@@ -127,6 +142,7 @@ def message_to_out(
     sender: User | None,
     artifact: Artifact | None,
     reply_to: ReplyPreview | None = None,
+    reactions: list[ReactionOut] | None = None,
 ) -> MessageOut:
     return MessageOut(
         id=message.id,
@@ -141,6 +157,7 @@ def message_to_out(
         created_at=message.created_at,
         edited_at=message.edited_at,
         deleted_at=message.deleted_at,
+        reactions=[] if message.deleted_at else reactions or [],
     )
 
 

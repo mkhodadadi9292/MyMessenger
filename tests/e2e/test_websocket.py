@@ -153,3 +153,32 @@ async def test_ws_send_blocked_pair_gets_error(live_server: str, otp_sender) -> 
             )
             error = await _recv_until(bob_ws, "error")
             assert "cannot message" in error["detail"]
+
+async def test_ws_broadcasts_reaction_changes(live_server: str, otp_sender) -> None:
+    async with httpx.AsyncClient(base_url=live_server) as client:
+        alice = await _register(client, otp_sender, "wsalice5")
+        bob = await _register(client, otp_sender, "wsbob5")
+        chat_id = await _open_chat(client, alice, bob)
+        sent = await client.post(
+            f"/api/v1/chats/{chat_id}/messages",
+            json={"text": "react"},
+            headers=auth_headers(alice["access_token"]),
+        )
+        message_id = sent.json()["id"]
+
+        async with websockets.connect(_ws_url(live_server, alice["access_token"])) as alice_ws:
+            await alice_ws.send('{"type": "subscribe", "chat_id": %d}' % chat_id)
+            await alice_ws.send('{"type": "ping"}')
+            await _recv_until(alice_ws, "pong")
+
+            response = await client.put(
+                f"/api/v1/messages/{message_id}/reaction",
+                json={"code": "fire"},
+                headers=auth_headers(bob["access_token"]),
+            )
+            assert response.status_code == 200
+
+            event = await _recv_until(alice_ws, "message.reactions_changed")
+            assert event["message_id"] == message_id
+            assert event["reactions"][0]["code"] == "fire"
+            assert event["reactions"][0]["user_ids"] == [bob["user"]["id"]]

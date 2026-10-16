@@ -1,3 +1,5 @@
+import type { ReactionCode } from './reactions'
+
 export interface UserPublic {
   id: number
   username: string
@@ -25,6 +27,18 @@ export interface ReplyPreview {
   deleted: boolean
 }
 
+export interface ReactionOut {
+  code: ReactionCode
+  count: number
+  user_ids: number[]
+}
+
+export interface ReactionsChanged {
+  chat_id: number
+  message_id: number
+  reactions: ReactionOut[]
+}
+
 export interface MessageOut {
   id: number
   chat_id: number
@@ -36,6 +50,7 @@ export interface MessageOut {
   created_at: string
   edited_at: string | null
   deleted_at: string | null
+  reactions: ReactionOut[]
 }
 
 export interface ChatOut {

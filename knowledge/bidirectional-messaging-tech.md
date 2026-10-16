@@ -70,4 +70,4 @@ A production-grade design adds:
 
 ## Status in this project
 
-Websocket is now **implemented** (see `PLAN/README.md` and `CLAUDE.md`): a `/ws` endpoint with per-chat subscriptions delivers `message.new` and `chat.list_changed` events; REST remains the send path and short polling is kept only as an automatic fallback when the socket is down.
+WS is now **implemented** (see `PLAN/README.md` and `CLAUDE.md`): a `/ws` endpoint with per-chat subscriptions delivers `message.new` and `chat.list_changed` events; REST remains the send path and short polling is kept only as an automatic fallback when the socket is down.

@@ -445,6 +445,7 @@ h3 {
   align-items: flex-end;
   gap: 4px;
   max-width: 72%;
+  position: relative;
 }
 
 .message-row.mine {
@@ -732,4 +733,61 @@ h3 {
     width: 100%;
     margin: 16px;
   }
+}
+
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  clear: both;
+  padding-top: 6px;
+}
+
+.reaction-chip {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 8px;
+  font-size: 13px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.reaction-chip.mine {
+  background: var(--accent-soft);
+}
+
+.reaction-picker {
+  position: absolute;
+  bottom: 100%;
+  display: flex;
+  gap: 2px;
+  background: var(--panel);
+  padding: 4px 6px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  z-index: 10;
+}
+
+.message-row.theirs .reaction-picker {
+  left: 0;
+}
+
+.message-row.mine .reaction-picker {
+  right: 0;
+}
+
+.reaction-picker button {
+  background: transparent;
+  font-size: 20px;
+  padding: 4px 6px;
+  border-radius: 50%;
+}
+
+.reaction-picker button:hover {
+  background: var(--panel-hover);
+  transform: scale(1.15);
+}
+
+.reaction-picker.below {
+  bottom: auto;
+  top: 100%;
 }

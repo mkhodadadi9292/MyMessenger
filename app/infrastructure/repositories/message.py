@@ -3,11 +3,10 @@ from collections.abc import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import Artifact, Message
-from app.domain.repositories.message import ArtifactRepository, MessageRepository
-from app.domain.value_objects import ArtifactKind
-from app.infrastructure.db.models import ArtifactModel, MessageModel
-
+from app.domain.entities import Artifact, Message, Reaction
+from app.domain.repositories.message import ArtifactRepository, MessageRepository, ReactionRepository
+from app.domain.value_objects import ArtifactKind, ReactionCode
+from app.infrastructure.db.models import ArtifactModel, MessageModel, ReactionModel
 
 def message_to_entity(model: MessageModel) -> Message:
     return Message(
@@ -136,6 +135,69 @@ class SqlArtifactRepository(ArtifactRepository):
 
     async def delete(self, entity: Artifact) -> None:
         model = await self._session.get(ArtifactModel, entity.id)
+        if model is not None:
+            await self._session.delete(model)
+            await self._session.flush()
+
+def reaction_to_entity(model: ReactionModel) -> Reaction:
+    return Reaction(
+        id=model.id,
+        message_id=model.message_id,
+        user_id=model.user_id,
+        code=ReactionCode(model.code),
+        created_at=model.created_at,
+    )
+
+
+class SqlReactionRepository(ReactionRepository):
+    def __init__(self, session: AsyncSession) -> None:
+        self._session = session
+
+    async def get(self, entity_id: int) -> Reaction | None:
+        model = await self._session.get(ReactionModel, entity_id)
+        return reaction_to_entity(model) if model else None
+
+    async def get_pair(self, message_id: int, user_id: int) -> Reaction | None:
+        model = await self._session.scalar(
+            select(ReactionModel).where(
+                ReactionModel.message_id == message_id, ReactionModel.user_id == user_id
+            )
+        )
+        return reaction_to_entity(model) if model else None
+
+    async def list_by_message_ids(self, message_ids: Sequence[int]) -> list[Reaction]:
+        if not message_ids:
+            return []
+        models = (
+            await self._session.scalars(
+                select(ReactionModel)
+                .where(ReactionModel.message_id.in_(list(message_ids)))
+                .order_by(ReactionModel.created_at, ReactionModel.id)
+            )
+        ).all()
+        return [reaction_to_entity(m) for m in models]
+
+    async def add(self, entity: Reaction) -> Reaction:
+        model = ReactionModel(
+            message_id=entity.message_id,
+            user_id=entity.user_id,
+            code=entity.code.value,
+            created_at=entity.created_at,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        return reaction_to_entity(model)
+
+    async def update(self, entity: Reaction) -> Reaction:
+        model = await self._session.get(ReactionModel, entity.id)
+        if model is None:
+            return await self.add(entity)
+        model.code = entity.code.value
+        await self._session.flush()
+        return reaction_to_entity(model)
+
+    async def delete(self, entity: Reaction) -> None:
+        model = await self._session.get(ReactionModel, entity.id)
         if model is not None:
             await self._session.delete(model)
             await self._session.flush()

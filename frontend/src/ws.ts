@@ -1,12 +1,12 @@
 import { getAccessToken } from './api'
-import type { MessageOut } from './types'
+import type { MessageOut, ReactionsChanged } from './types'
 
 export type RealtimeEvent =
   | { type: 'message.new'; message: MessageOut }
   | { type: 'chat.list_changed' }
   | { type: 'error'; detail: string }
   | { type: 'pong' }
-  | { type: 'message.sent'; message: MessageOut }
+  | ({ type: 'message.reactions_changed' } & ReactionsChanged)
 
 type Handler = (event: RealtimeEvent) => void
 

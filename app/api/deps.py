@@ -26,7 +26,7 @@ from app.infrastructure.repositories.chat import (
     SqlInviteRepository,
 )
 from app.infrastructure.repositories.contact import SqlBlockRepository, SqlContactRepository
-from app.infrastructure.repositories.message import SqlArtifactRepository, SqlMessageRepository
+from app.infrastructure.repositories.message import SqlArtifactRepository, SqlMessageRepository, SqlReactionRepository
 from app.infrastructure.repositories.user import SqlUserRepository
 from app.infrastructure.storage import LocalStorage
 
@@ -147,6 +147,9 @@ def get_invite_service(
 ) -> InviteService:
     return InviteService(invites, chats, members, users)
 
+def get_reaction_repo(db: AsyncSession = Depends(get_db)) -> SqlReactionRepository:
+    return SqlReactionRepository(db)
+
 
 def get_message_service(
     messages: SqlMessageRepository = Depends(get_message_repo),
@@ -155,8 +158,10 @@ def get_message_service(
     members: SqlChatMemberRepository = Depends(get_member_repo),
     users: SqlUserRepository = Depends(get_user_repo),
     blocks: SqlBlockRepository = Depends(get_block_repo),
+    reactions: SqlReactionRepository = Depends(get_reaction_repo),
 ) -> MessageService:
-    return MessageService(messages, artifacts, chats, members, users, blocks)
+    return MessageService(messages, artifacts, chats, members, users, blocks, reactions)
+
 
 
 def get_artifact_service(
@@ -166,10 +171,11 @@ def get_artifact_service(
     members: SqlChatMemberRepository = Depends(get_member_repo),
     users: SqlUserRepository = Depends(get_user_repo),
     blocks: SqlBlockRepository = Depends(get_block_repo),
+    reactions: SqlReactionRepository = Depends(get_reaction_repo),
     storage: LocalStorage = Depends(get_storage),
     settings: Settings = Depends(get_settings),
 ) -> ArtifactService:
-    return ArtifactService(messages, artifacts, chats, members, users, blocks, storage, settings)
+    return ArtifactService(messages, artifacts, chats, members, users, blocks, reactions, storage, settings)
 
 
 async def get_current_user(
@@ -188,3 +194,4 @@ async def get_current_user(
     if user is None:
         raise UnauthorizedError("user not found")
     return user
+

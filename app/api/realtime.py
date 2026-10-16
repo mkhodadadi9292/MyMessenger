@@ -39,3 +39,8 @@ async def broadcast_new_message(
 async def notify_chat_list_changed(hub: ConnectionManager, user_ids: set[int]) -> None:
     for user_id in user_ids:
         await hub.send_to_user(user_id, {"type": "chat.list_changed"})
+
+async def broadcast_reactions_changed(hub: ConnectionManager, payload: dict) -> None:
+    await hub.broadcast_to_chat(
+        payload["chat_id"], {"type": "message.reactions_changed", **payload}
+    )
