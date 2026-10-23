@@ -78,6 +78,7 @@ async def _handle_send(
             )
             message = await service.send_message(user_id, chat_id, text, reply_to_id)
             sender = await SqlUserRepository(session).get(user_id)
+            await session.commit()
             event = await broadcast_new_message(
                 hub,
                 SqlChatMemberRepository(session),
@@ -86,7 +87,6 @@ async def _handle_send(
                 sender,
                 chat_id,
             )
-            await session.commit()
             await websocket.send_json(
                 {"type": "message.sent", "message": event}
             )

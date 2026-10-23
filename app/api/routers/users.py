@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, File, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
-from app.api.deps import get_current_user, get_user_service
+from app.api.deps import get_current_user, get_db, get_user_service
 from app.api.schemas.common import user_to_public
 from app.application.user_service import UserService
 from app.domain.entities import User
@@ -30,6 +31,7 @@ async def update_me(
     body: UserUpdateIn,
     current_user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     user = await service.update_me(
         current_user.id,
@@ -38,6 +40,7 @@ async def update_me(
         last_name=body.last_name,
         bio=body.bio,
     )
+    await db.commit()
     return user_to_public(user).model_dump()
 
 
@@ -66,7 +69,9 @@ async def upload_avatar(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
     service: UserService = Depends(get_user_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     content = await file.read()
     user = await service.upload_avatar(current_user.id, file.filename or "avatar", file.content_type or "", content)
+    await db.commit()
     return user_to_public(user).model_dump()

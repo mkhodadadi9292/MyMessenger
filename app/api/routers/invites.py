@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_invite_service, get_current_user
+from app.api.deps import get_current_user, get_db, get_invite_service
 from app.application.invite_service import InviteService
 from app.domain.entities import User
 
@@ -22,8 +23,10 @@ async def invite_user(
     body: InviteUserIn,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     invite = await service.invite_user(current_user.id, chat_id, body.user_id)
+    await db.commit()
     return {"invite_id": invite.id, "status": invite.status.value}
 
 
@@ -33,9 +36,12 @@ async def create_invite_link(
     body: InviteLinkIn | None = None,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     ttl = body.ttl_seconds if body else None
-    return await service.create_invite_link(current_user.id, chat_id, ttl)
+    result = await service.create_invite_link(current_user.id, chat_id, ttl)
+    await db.commit()
+    return result
 
 
 @router.get("/invites/{token}")
@@ -52,8 +58,10 @@ async def accept_invite_link(
     token: str,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.accept_link(current_user.id, token)
+    await db.commit()
     return {"ok": True}
 
 
@@ -70,8 +78,10 @@ async def accept_invite(
     invite_id: int,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.accept_invite(current_user.id, invite_id)
+    await db.commit()
     return {"ok": True}
 
 
@@ -80,6 +90,8 @@ async def decline_invite(
     invite_id: int,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.decline_invite(current_user.id, invite_id)
+    await db.commit()
     return {"ok": True}

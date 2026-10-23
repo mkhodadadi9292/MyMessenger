@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { getOtpCode, loginViaUi, registerViaUi, uniqueUser } from './helpers'
+import { BACKEND_URL, getOtpCode, loginViaUi, registerViaUi, uniqueUser } from './helpers'
 
 test('register, logout and login again', async ({ page }) => {
   const alice = uniqueUser('alice')
@@ -31,7 +31,7 @@ test('registration with duplicate username shows conflict', async ({ browser }) 
   await expect(second.getByTestId('code')).toBeVisible()
   const code = await second.request
     .get(
-      `http://127.0.0.1:8000/api/v1/auth/otp/dev/latest?identifier=${encodeURIComponent(impostor.identifier)}`,
+      `${BACKEND_URL}/api/v1/auth/otp/dev/latest?identifier=${encodeURIComponent(impostor.identifier)}`,
     )
     .then((r) => r.json())
   await second.getByTestId('code').fill(code.code)

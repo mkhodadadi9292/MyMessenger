@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from app.api.deps import get_auth_service, get_otp_sender, get_settings
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import (
+    get_auth_service,
+    get_db,
+    get_otp_sender,
+    get_settings,
+)
 from app.api.schemas.common import user_to_public
 from app.application.auth_service import AuthService
 from app.application.ports import OtpSender
@@ -40,23 +47,42 @@ def _token_response(result: dict) -> dict:
 
 
 @router.post("/otp/request")
-async def request_otp(body: OtpRequestIn, service: AuthService = Depends(get_auth_service)) -> dict:
-    return await service.request_otp(body.identifier)
+async def request_otp(
+    body: OtpRequestIn,
+    service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await service.request_otp(body.identifier)
+    # commit before the response so an immediate /otp/verify sees the code
+    await db.commit()
+    return result
 
 
 @router.post("/otp/verify")
-async def verify_otp(body: OtpVerifyIn, service: AuthService = Depends(get_auth_service)) -> dict:
+async def verify_otp(
+    body: OtpVerifyIn,
+    service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
     result = await service.verify_otp(body.identifier, body.code)
+    await db.commit()
     if result.get("registered") is False:
         return result
     return _token_response(result)
 
 
 @router.post("/register")
-async def register(body: RegisterIn, service: AuthService = Depends(get_auth_service)) -> dict:
+async def register(
+    body: RegisterIn,
+    service: AuthService = Depends(get_auth_service),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
     result = await service.register(
         body.registration_token, body.username, body.first_name, body.last_name
     )
+    # commit before the response so other users can immediately find/search
+    # the new account (read-committed visibility)
+    await db.commit()
     return _token_response(result)
 
 

@@ -40,7 +40,7 @@ class ConnectionManager:
             try:
                 await websocket.send_json(payload)
             except Exception:
-                logger.debug("failed to send ws event to user %s", user_id, exc_info=True)
+                logger.warning("failed to send ws event to user %s", user_id, exc_info=True)
 
     async def broadcast_to_chat(self, chat_id: int, payload: dict) -> None:
         for user_id in list(self._subscriptions.get(chat_id, ())):

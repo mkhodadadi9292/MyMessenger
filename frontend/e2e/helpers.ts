@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test'
 
-export const BACKEND_URL = 'http://127.0.0.1:8000'
+export const BACKEND_URL = process.env.PW_BACKEND_URL ?? 'http://127.0.0.1:8000'
 
 const RUN = Date.now().toString(36)
 let counter = 0

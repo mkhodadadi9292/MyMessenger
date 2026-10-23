@@ -61,10 +61,9 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         setMessages((prev) => withReactions(prev, event))
       }
     })
-    // polling is only a fallback while the websocket is down
-    const timer = setInterval(() => {
-      if (!realtime.connected) load()
-    }, 2000)
+    // slow polling safety net: heals any missed WS events while the
+    // socket remains the fast path
+    const timer = setInterval(load, 5000)
     return () => {
       offEvent()
       clearInterval(timer)

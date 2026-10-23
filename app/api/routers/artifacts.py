@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.deps import (
     get_artifact_service,
     get_current_user,
+    get_db,
     get_member_repo,
     get_message_service,
 )
@@ -29,6 +32,7 @@ async def upload_artifact(
     service: ArtifactService = Depends(get_artifact_service),
     message_service: MessageService = Depends(get_message_service),
     members: SqlChatMemberRepository = Depends(get_member_repo),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     content = await file.read()
     message, artifact = await service.upload(
@@ -41,6 +45,7 @@ async def upload_artifact(
         reply_to_id,
     )
     payload = (await _message_dicts(message_service, [(message, current_user, artifact)]))[0]
+    await db.commit()
     await broadcast_new_message(
         request.app.state.realtime,
         members,

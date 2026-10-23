@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-from app.api.deps import get_chat_service, get_current_user, get_member_repo
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import (
+    get_chat_service,
+    get_current_user,
+    get_db,
+    get_member_repo,
+)
 from app.api.realtime import notify_chat_list_changed
 from app.api.schemas.common import chat_to_out, member_to_out, message_to_out, user_to_public
 from app.application.chat_service import ChatService
@@ -55,8 +62,10 @@ async def open_private_chat(
     request: Request,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     chat = await service.open_private_chat(current_user.id, body.user_id)
+    await db.commit()
     await notify_chat_list_changed(
         request.app.state.realtime, {current_user.id, body.user_id}
     )
@@ -68,8 +77,10 @@ async def create_group(
     body: GroupCreateIn,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     chat = await service.create_group(current_user.id, body.title, body.description, body.is_public)
+    await db.commit()
     return chat_to_out(chat).model_dump()
 
 
@@ -89,8 +100,10 @@ async def update_chat(
     body: ChatUpdateIn,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     chat = await service.update_chat(current_user.id, chat_id, body.title, body.description)
+    await db.commit()
     return chat_to_out(chat).model_dump()
 
 
@@ -110,8 +123,10 @@ async def add_member(
     body: MemberAddIn,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     result = await service.add_member(current_user.id, chat_id, body.user_id)
+    await db.commit()
     if "invite" in result:
         invite = result["invite"]
         return {"invite_id": invite.id, "status": invite.status.value}
@@ -125,8 +140,10 @@ async def remove_member(
     user_id: int,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.remove_member(current_user.id, chat_id, user_id)
+    await db.commit()
     return {"ok": True}
 
 
@@ -137,8 +154,10 @@ async def join_group(
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
     members: SqlChatMemberRepository = Depends(get_member_repo),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.join_group(current_user.id, chat_id)
+    await db.commit()
     member_ids = {m.user_id for m in await members.list_by_chat(chat_id)}
     await notify_chat_list_changed(request.app.state.realtime, member_ids)
     return {"ok": True}
@@ -149,8 +168,10 @@ async def leave_chat(
     chat_id: int,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.leave_chat(current_user.id, chat_id)
+    await db.commit()
     return {"ok": True}
 
 
@@ -160,6 +181,8 @@ async def promote_to_admin(
     user_id: int,
     current_user: User = Depends(get_current_user),
     service: ChatService = Depends(get_chat_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.promote_to_admin(current_user.id, chat_id, user_id)
+    await db.commit()
     return {"ok": True}

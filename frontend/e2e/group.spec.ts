@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { expectMessageVisible, registerViaUi, sendMessage, uniqueUser } from './helpers'
+import { BACKEND_URL, expectMessageVisible, registerViaUi, sendMessage, uniqueUser } from './helpers'
 
 test('private group: create, invite, accept, message', async ({ browser }) => {
   const alice = uniqueUser('alice')
@@ -60,7 +60,7 @@ test('public group: join by id', async ({ browser }) => {
 
   const token = await alicePage.evaluate(() => localStorage.getItem('access_token'))
   const groupId = await alicePage.request
-    .get('http://127.0.0.1:8000/api/v1/chats', {
+    .get(`${BACKEND_URL}/api/v1/chats`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     .then((r) => r.json())

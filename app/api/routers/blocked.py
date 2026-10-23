@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_block_service, get_current_user
+from app.api.deps import get_block_service, get_current_user, get_db
 from app.api.schemas.common import contact_to_out
 from app.application.block_service import BlockService
 from app.domain.entities import User
@@ -22,8 +23,10 @@ async def block_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
     service: BlockService = Depends(get_block_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.block(current_user.id, user_id)
+    await db.commit()
     return {"ok": True}
 
 
@@ -32,6 +35,8 @@ async def unblock_user(
     user_id: int,
     current_user: User = Depends(get_current_user),
     service: BlockService = Depends(get_block_service),
+    db: AsyncSession = Depends(get_db),
 ) -> dict:
     await service.unblock(current_user.id, user_id)
+    await db.commit()
     return {"ok": True}

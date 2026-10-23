@@ -12,9 +12,15 @@ docker compose up --build
 ```
 
 - The backend runs migrations on startup (`alembic upgrade head`) and listens on port 8000 (internal).
+- **Database**: Postgres 16 (`db` service, named volume `messenger-pgdata`). The backend connects via `postgresql+asyncpg`.
+- The legacy SQLite volume (`messenger-db`) is kept as a backup after migration.
 - Nginx serves the React build, proxies `/api` to the backend, and serves uploaded media from a shared volume.
 - **OTP codes** are printed in the backend log (`docker compose logs backend`) and, while `DEBUG=true`, are also available at `GET /api/v1/auth/otp/dev/latest?identifier=<email>`.
-- Data persists in named volumes (`messenger-db`, `messenger-media`). `docker compose down -v` resets.
+- Data persists in named volumes (`messenger-pgdata`, `messenger-media`). `docker compose down -v` resets.
+- **Backups / migration**:
+  - `./scripts/backup_db.sh pg` — Postgres dump (restore command printed by the script)
+  - `./scripts/backup_db.sh sqlite` — copy of the legacy SQLite file
+  - `uv run python scripts/migrate_sqlite_to_postgres.py <sqlite-url> <postgres-url>` — one-time data migration (preserves ids, resets sequences)
 
 ## Run locally (dev)
 

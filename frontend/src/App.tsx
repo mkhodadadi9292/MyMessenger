@@ -58,10 +58,9 @@ export default function App() {
       if (event.type === 'chat.list_changed') load()
     })
     realtime.connect()
-    // polling is only a fallback while the websocket is down
-    const timer = setInterval(() => {
-      if (!realtime.connected) load()
-    }, 3000)
+    // slow polling safety net: heals any missed WS events (e.g. throttled
+    // background tabs) while the socket remains the fast path
+    const timer = setInterval(load, 5000)
     return () => {
       offEvent()
       clearInterval(timer)
