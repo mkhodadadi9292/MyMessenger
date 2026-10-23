@@ -10,6 +10,7 @@ from app.application.chat_service import ChatService
 from app.application.contact_service import ContactService
 from app.application.invite_service import InviteService
 from app.application.message_service import MessageService
+from app.application.notification_service import NotificationService
 from app.application.ports import OtpSender
 from app.application.user_service import UserService
 from app.config import Settings
@@ -27,6 +28,7 @@ from app.infrastructure.repositories.chat import (
 )
 from app.infrastructure.repositories.contact import SqlBlockRepository, SqlContactRepository
 from app.infrastructure.repositories.message import SqlArtifactRepository, SqlMessageRepository, SqlReactionRepository
+from app.infrastructure.repositories.notification import SqlNotificationRepository
 from app.infrastructure.repositories.user import SqlUserRepository
 from app.infrastructure.storage import LocalStorage
 
@@ -88,6 +90,10 @@ def get_invite_repo(db: AsyncSession = Depends(get_db)) -> SqlInviteRepository:
 
 def get_message_repo(db: AsyncSession = Depends(get_db)) -> SqlMessageRepository:
     return SqlMessageRepository(db)
+
+
+def get_notification_repo(db: AsyncSession = Depends(get_db)) -> SqlNotificationRepository:
+    return SqlNotificationRepository(db)
 
 
 def get_artifact_repo(db: AsyncSession = Depends(get_db)) -> SqlArtifactRepository:
@@ -161,6 +167,15 @@ def get_message_service(
     reactions: SqlReactionRepository = Depends(get_reaction_repo),
 ) -> MessageService:
     return MessageService(messages, artifacts, chats, members, users, blocks, reactions)
+
+
+def get_notification_service(
+    notifications: SqlNotificationRepository = Depends(get_notification_repo),
+    members: SqlChatMemberRepository = Depends(get_member_repo),
+    users: SqlUserRepository = Depends(get_user_repo),
+    chats: SqlChatRepository = Depends(get_chat_repo),
+) -> NotificationService:
+    return NotificationService(notifications, members, users, chats)
 
 
 

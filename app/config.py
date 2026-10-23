@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     otp_length: int = 6
     registration_token_ttl_minutes: int = 10
     max_artifact_size_mb: int = 20
+    sse_keepalive_seconds: int = 15
 
 
 @lru_cache

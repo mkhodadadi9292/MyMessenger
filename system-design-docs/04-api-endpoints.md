@@ -83,6 +83,15 @@ Base URL: `/api/v1`. Auth: `Authorization: Bearer <access_token>` (marked 🔒).
 | T1 | POST | `/chats/{chat_id}/artifacts` | multipart: `file`, `kind` (image\|video\|audio), `reply_to_id?` | created message with artifact | 🔒 |
 | T2 | GET | `/artifacts/{artifact_id}/download` | — | file (members only) | 🔒 |
 
+## Notifications (SSE — see 08-notifications.md)
+
+| # | Method | Path | Body / Params | Response | Auth |
+|---|---|---|---|---|---|
+| N1 | GET | `/notifications` | `?before_id=&limit=` | `[{id, type, chat_id, chat_title, sender_id, sender_username, preview, message_id, invite_id, is_read, created_at}]` newest-first | 🔒 |
+| N2 | GET | `/notifications/unread-count` | — | `{count}` | 🔒 |
+| N3 | POST | `/notifications/read` | `{chat_id?: int}` (null = all) | `{ok:true, unread_count}` | 🔒 |
+| N4 | GET | `/notifications/stream` | `?token=<access_token>` | SSE stream (`text/event-stream`): `event: notification.new` + keepalive comments | token (query) — header also accepted |
+
 ## Misc
 
 | # | Method | Path | Response | Auth |

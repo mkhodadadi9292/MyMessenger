@@ -47,8 +47,14 @@
 - FR-8.1 Block / unblock any user.
 - FR-8.2 While A blocks B: B cannot message A, cannot invite A to groups, cannot see A's profile (profile access denied), cannot add A to contacts.
 
-### FR-9 Out of scope for v1 (design-ready)
-- Notifications (push/in-app) — data model and service seams prepared for a later phase.
+### FR-9 Notifications (in-app, SSE)
+- FR-9.1 Users receive a notification for every message sent in a chat they are a member of, except their own messages (REST, WS, or artifact upload).
+- FR-9.2 Users receive a notification when they are invited to a private group (button invite).
+- FR-9.3 Notifications are delivered live over an authenticated SSE stream and persisted in an inbox (survives disconnects; list + unread count via REST).
+- FR-9.4 Users can mark notifications read — all, or per chat; opening a chat marks its notifications read automatically.
+- FR-9.5 The frontend shows a bell with an unread badge and a notification panel; clicking a notification opens the chat (or the invites panel for invites).
+
+Out of scope for v1 (design-ready): push notifications while the app is closed (FCM/APNs), device tokens, notification grouping/coalescing — see `system-design-docs/08-notifications.md`.
 
 ## Non-functional requirements
 

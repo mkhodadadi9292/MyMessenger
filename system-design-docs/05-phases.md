@@ -126,9 +126,23 @@ Deliverables: `deploy/nginx.conf` (static frontend build, `/media/` alias, `/api
 
 ---
 
+## Phase 9 — Notifications (SSE)
+
+**Status: done.**
+
+Deliverables: per-user chat-based notifications with an SSE stream — `notifications` table + Alembic migration, `Notification` aggregate (entity/VO/repository ABC/SQL impl), `NotificationService`, `SseHub` (per-user fan-out queues), `GET /api/v1/notifications/stream` (token via query, keepalive, `retry: 3000`), REST list/unread-count/mark-read (N1–N3), event wiring in all four write paths (REST message, artifact upload, WS send, button invite), Nginx `proxy_buffering off` location, frontend `sse.ts` client + bell/badge/panel UI + mark-read on chat open. Full design: [08-notifications.md](08-notifications.md).
+
+Tests:
+- unit: `tests/unit/test_notifications.py` — VO parsing, mark-read idempotency, service fan-out (sender excluded), preview trimming, DTOs.
+- integration: `tests/integration/test_notifications.py` — rows on message/artifact/invite, unread counts, mark-read scoping, pagination, auth.
+- e2e (backend): `tests/e2e/test_notifications.py` — real SSE stream over uvicorn (delivery, no self-notification, invite events, 401s).
+- frontend: Vitest (`src/__tests__/sse.test.ts`, `notifications-panel.test.tsx`) + Playwright (`e2e/notifications.spec.ts`) incl. docker-compose mode (`PW_BASE_URL`).
+
+---
+
 ## Definition of done (global)
 
-**Status: done** — backend suite green (230/230: unit + integration + e2e), Playwright e2e green (7/7). Typecheck/lint/pyright jobs only exist in `.gitlab-ci.yml` when present; none configured in this repo yet.
+**Status: done** — backend suite green (289/289: unit + integration + e2e, incl. notifications), Playwright e2e green (16/16), Vitest component tests green (12/12). Typecheck/lint/pyright jobs only exist in `.gitlab-ci.yml` when present; none configured in this repo yet.
 
 - All phases' tests green: `pytest` (unit+integration+e2e) and `playwright test`.
 - Full typing; mypy/pyright clean (per CI jobs in `.gitlab-ci.yml`).

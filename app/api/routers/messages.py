@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_member_repo, get_message_service
+from app.api.notify import notify_new_message
 from app.api.realtime import broadcast_new_message, broadcast_reactions_changed
 from app.api.schemas.common import message_to_out, reactions_to_out, reply_preview_to_out
 from app.application.message_service import MessageService
@@ -74,6 +75,7 @@ async def send_message(
     await broadcast_new_message(
         request.app.state.realtime, members, service, message, current_user, chat_id
     )
+    await notify_new_message(request.app.state.sse, db, message)
     return payload
 
 

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_invite_service
+from app.api.notify import notify_new_invite
 from app.application.invite_service import InviteService
 from app.domain.entities import User
 
@@ -21,12 +22,14 @@ class InviteLinkIn(BaseModel):
 async def invite_user(
     chat_id: int,
     body: InviteUserIn,
+    request: Request,
     current_user: User = Depends(get_current_user),
     service: InviteService = Depends(get_invite_service),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     invite = await service.invite_user(current_user.id, chat_id, body.user_id)
     await db.commit()
+    await notify_new_invite(request.app.state.sse, db, invite)
     return {"invite_id": invite.id, "status": invite.status.value}
 
 

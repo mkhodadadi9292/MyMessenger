@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { api, clearTokens, hasSession } from './api'
+import { api, clearTokens, fetchUnreadCount, hasSession, markNotificationsRead } from './api'
 import { AuthScreen } from './components/AuthScreen'
 import { ChatWindow } from './components/ChatWindow'
 import { ContactsPage } from './components/ContactsPage'
 import { SettingsPage } from './components/SettingsPage'
 import { Sidebar } from './components/Sidebar'
 import type { ChatListItem, UserPublic } from './types'
+import { notifications } from './sse'
 import { realtime } from './ws'
 
 type View = 'main' | 'settings' | 'contacts'
@@ -16,10 +17,13 @@ export default function App() {
   const [loading, setLoading] = useState(hasSession())
   const [chats, setChats] = useState<ChatListItem[]>([])
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
   const [view, setView] = useState<View>('main')
   const [isMobile, setIsMobile] = useState(
     () => window.matchMedia('(max-width: 768px)').matches,
   )
+  const selectedChatRef = useRef<number | null>(null)
+  selectedChatRef.current = selectedChatId
 
   useEffect(() => {
     const query = window.matchMedia('(max-width: 768px)')
@@ -56,6 +60,16 @@ export default function App() {
     load()
     const offEvent = realtime.onEvent((event) => {
       if (event.type === 'chat.list_changed') load()
+      // reading messages in the open chat keeps its badge cleared
+      if (
+        event.type === 'message.new' &&
+        selectedChatRef.current !== null &&
+        event.message.chat_id === selectedChatRef.current
+      ) {
+        markNotificationsRead(selectedChatRef.current)
+          .then((result) => setUnreadCount(result.unread_count))
+          .catch(() => {})
+      }
     })
     realtime.connect()
     // slow polling safety net: heals any missed WS events (e.g. throttled
@@ -67,17 +81,42 @@ export default function App() {
     }
   }, [user])
 
+  useEffect(() => {
+    if (!user) return
+    fetchUnreadCount()
+      .then((result) => setUnreadCount(result.count))
+      .catch(() => {})
+    const offNotification = notifications.onEvent((event) => {
+      if (event.type === 'notification.new') {
+        setUnreadCount(event.unread_count)
+      }
+    })
+    notifications.connect()
+    return () => {
+      offNotification()
+      notifications.disconnect()
+    }
+  }, [user])
+
   if (loading) return <div className="splash">Loading…</div>
 
   if (!user) {
     return <AuthScreen onAuthed={setUser} />
   }
 
+  const handleMarkNotificationsRead = (chatId: number | null) => {
+    markNotificationsRead(chatId)
+      .then((result) => setUnreadCount(result.unread_count))
+      .catch(() => {})
+  }
+
   const logout = () => {
     realtime.disconnect()
+    notifications.disconnect()
     clearTokens()
     setUser(null)
     setSelectedChatId(null)
+    setUnreadCount(0)
     setView('main')
   }
 
@@ -88,10 +127,13 @@ export default function App() {
           user={user}
           chats={sortedChats}
           selectedChatId={selectedChatId}
+          unreadCount={unreadCount}
           onSelectChat={(id) => {
             setSelectedChatId(id)
             setView('main')
+            handleMarkNotificationsRead(id)
           }}
+          onMarkNotificationsRead={handleMarkNotificationsRead}
           onOpenSettings={() => setView('settings')}
           onOpenContacts={() => setView('contacts')}
           onLogout={logout}

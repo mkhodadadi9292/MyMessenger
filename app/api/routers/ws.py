@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.api.notify import notify_new_message
 from app.api.realtime import broadcast_new_message
 from app.config import Settings
 from app.domain.exceptions import DomainError, UnauthorizedError
@@ -87,6 +88,7 @@ async def _handle_send(
                 sender,
                 chat_id,
             )
+            await notify_new_message(websocket.app.state.sse, session, message)
             await websocket.send_json(
                 {"type": "message.sent", "message": event}
             )

@@ -10,6 +10,7 @@ from app.api.deps import (
     get_member_repo,
     get_message_service,
 )
+from app.api.notify import notify_new_message
 from app.api.realtime import broadcast_new_message
 from app.api.routers.messages import _message_dicts
 from app.application.artifact_service import ArtifactService
@@ -55,6 +56,7 @@ async def upload_artifact(
         chat_id,
         artifact,
     )
+    await notify_new_message(request.app.state.sse, db, message, artifact)
     return payload
 
 

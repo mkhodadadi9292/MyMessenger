@@ -1,5 +1,5 @@
 import type { ReactionCode } from './reactions'
-import type { AuthTokens, MessageOut, ReactionsChanged } from './types'
+import type { AuthTokens, MessageOut, NotificationOut, ReactionsChanged } from './types'
 
 const API = '/api/v1'
 
@@ -102,4 +102,20 @@ export function setReaction(messageId: number, code: ReactionCode): Promise<Reac
 
 export function removeReaction(messageId: number): Promise<ReactionsChanged> {
   return api<ReactionsChanged>(`/messages/${messageId}/reaction`, { method: 'DELETE' })
+}
+
+export function fetchNotifications(): Promise<NotificationOut[]> {
+  return api<NotificationOut[]>('/notifications')
+}
+
+export function fetchUnreadCount(): Promise<{ count: number }> {
+  return api<{ count: number }>('/notifications/unread-count')
+}
+
+export function markNotificationsRead(chatId: number | null): Promise<{ unread_count: number }> {
+  return api<{ unread_count: number }>('/notifications/read', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId }),
+  })
 }

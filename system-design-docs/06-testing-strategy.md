@@ -31,10 +31,25 @@ Isolation rules (per user policy):
 
 | Layer | Tool | Scope |
 |---|---|---|
-| component | Vitest + Testing Library | message bubble, reply preview, chat list item, OTP form |
-| e2e | Playwright | full user journeys (Phase 7 specs) |
+| component | Vitest + Testing Library | notification SSE client, notification panel/badge |
+| e2e | Playwright | full user journeys (Phase 7 specs + notifications spec) |
 
 Playwright config starts the backend (test DB) and Vite dev server automatically; tests use the fake OTP sender route or read codes from logs.
+
+## SSE notification stream testing
+
+- **Backend e2e** (`tests/e2e/test_notifications.py`): the app runs under a real uvicorn
+  server (`live_server` fixture); httpx `client.stream()` reads SSE frames
+  (`event:`/`data:`/`retry:`/comment lines). The test module overrides
+  `settings.sse_keepalive_seconds = 1` so "no event" assertions wait for a keepalive instead
+  of 15 s. Streams must be opened (first `retry` frame consumed) **before** triggering the
+  event source — the generator is lazy.
+- **Frontend unit** (`sse.test.ts`): the global `EventSource` is stubbed (jsdom has none);
+  tests drive `onopen`/`addEventListener` callbacks and assert URL/token construction and
+  handler delivery.
+- **Frontend e2e** (`notifications.spec.ts`): two browser contexts; the badge must appear
+  without a reload (proves the SSE push); docker mode runs the same spec against the nginx
+  stack (`PW_BASE_URL=http://localhost:8080`), proving `proxy_buffering off` works.
 
 ## Running
 

@@ -62,6 +62,18 @@ class InviteStatus(StrEnum):
     EXPIRED = "expired"
 
 
+class NotificationType(StrEnum):
+    MESSAGE = "message"
+    INVITE = "invite"
+
+    @classmethod
+    def parse(cls, value: str) -> "NotificationType":
+        try:
+            return cls(value)
+        except ValueError:
+            raise ValidationError(f"unsupported notification type: {value}") from None
+
+
 _MIME_TYPES_BY_KIND: dict[str, set[str]] = {
     "image": {"image/png", "image/jpeg", "image/gif", "image/webp"},
     "video": {"video/mp4", "video/webm", "video/quicktime"},

@@ -100,6 +100,21 @@ All IDs: integer autoincrement PKs. Timestamps UTC. FKs indexed. Soft-delete whe
 | deleted_at | datetime NULL | soft delete → UI shows "deleted" |
 | created_at | datetime | |
 
+### notifications  (SSE inbox — see 08-notifications.md)
+| col | type | notes |
+|---|---|---|
+| id | int PK | pagination cursor |
+| user_id | int FK users | recipient, indexed |
+| chat_id | int FK chats | indexed |
+| type | str | `message` \| `invite` |
+| sender_id | int FK users | message sender / inviter |
+| message_id | int FK messages NULL | `message` type |
+| invite_id | int FK group_invites NULL | `invite` type |
+| chat_title | str NULL | denormalized snapshot (group title; NULL for private chats) |
+| preview | str NULL | denormalized snapshot (trimmed text / `sent <file>` / invite text) |
+| is_read | bool default false | |
+| created_at | datetime | indexed |
+
 ### artifacts
 | col | type | notes |
 |---|---|---|
@@ -122,6 +137,7 @@ All IDs: integer autoincrement PKs. Timestamps UTC. FKs indexed. Soft-delete whe
 | `MemberRole` | `owner` \| `admin` \| `member` |
 | `InviteStatus` | `pending` \| `accepted` \| `declined` \| `expired` |
 | `ArtifactKind` | `image` \| `video` \| `audio` |
+| `NotificationType` | `message` \| `invite` |
 
 ## Invariants (enforced in services, verified in tests)
 
@@ -136,7 +152,8 @@ All IDs: integer autoincrement PKs. Timestamps UTC. FKs indexed. Soft-delete whe
 9. OTP: 6 digits, 5-minute TTL, single-use, hashed at rest.
 10. Refresh token: stored hashed, revocable, rotation on refresh.
 
-## Future-proofing (notifications — out of scope)
+## Notifications
 
-- `messages` already has sender/chat/timestamps needed to build notification events.
-- Notification delivery would be a new infrastructure port (`Notifier`) + `device_tokens` table; no changes to message model required.
+- Implemented (Phase 9) as an SSE-delivered inbox — see [08-notifications.md](08-notifications.md).
+- Future (push while app closed): `device_tokens` table + an outbox relay after the
+  notification insert; the inbox rows are already the source of truth.

@@ -7,6 +7,7 @@ from app.domain.value_objects import (
     ChatType,
     InviteStatus,
     MemberRole,
+    NotificationType,
     Phone,
     ReactionCode,
     Username,
@@ -157,3 +158,21 @@ class Reaction:
     user_id: int
     code: ReactionCode
     created_at: datetime
+
+
+@dataclass
+class Notification:
+    id: int
+    user_id: int
+    chat_id: int
+    type: NotificationType
+    sender_id: int
+    message_id: int | None
+    invite_id: int | None
+    chat_title: str | None
+    preview: str | None
+    is_read: bool
+    created_at: datetime
+
+    def mark_read(self) -> None:
+        self.is_read = True

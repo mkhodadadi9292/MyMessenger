@@ -13,6 +13,7 @@ Telegram-like messenger. Backend: Python + FastAPI (REST). Frontend: React + Vit
 | [05-phases.md](05-phases.md) | Phased implementation plan with deliverables |
 | [06-testing-strategy.md](06-testing-strategy.md) | Unit / integration / e2e strategy, tools |
 | [07-responsive-ui.md](07-responsive-ui.md) | Responsive frontend: mobile single-pane + desktop two-pane |
+| [08-notifications.md](08-notifications.md) | Notifications: SSE stream, inbox, endpoints, delivery guarantees |
 
 ## Phases at a glance
 
@@ -27,9 +28,10 @@ Telegram-like messenger. Backend: Python + FastAPI (REST). Frontend: React + Vit
 | 6 | Frontend: React + Vite, Telegram-like UI | done |
 | 7 | Playwright e2e for the frontend | done |
 | 8 | Nginx + Docker + docs finalization | done |
+| 9 | Notifications: SSE stream + inbox + UI (bell/badge/panel) | done |
 
-**Status:** all phases implemented. Backend suite: 230 tests green (unit + integration + e2e, isolated in-memory test DB). Frontend: 7/7 Playwright e2e journeys green. Docker compose stack verified end to end (register → chat → upload → media served by Nginx).
+**Status:** all phases implemented. Backend suite: 289 tests green (unit + integration + e2e, isolated in-memory test DB). Frontend: 12 Vitest component tests + 16 Playwright e2e journeys green. Docker compose stack verified end to end (register → chat → upload → media served by Nginx).
 
 **Test-first rule:** every phase writes its tests (unit / integration / e2e) in the `tests/` tree, in the same phase as the feature — starting with Phase 0 which creates the test infrastructure itself.
 
-Realtime delivery is implemented via **WebSocket** (`/ws` endpoint with per-chat subscriptions; REST stays as the send path and polling as an automatic fallback). Notifications/push remain out of scope for v1 — the message model and service APIs are designed so they can be added later without breaking changes.
+Realtime delivery is implemented via **WebSocket** (`/ws` endpoint with per-chat subscriptions; REST stays as the send path and polling as an automatic fallback). **Notifications** are delivered via **SSE** (`/api/v1/notifications/stream`) with a persistent inbox — see [08-notifications.md](08-notifications.md). Push while the app is closed (FCM/APNs) remains out of scope for v1; the inbox design leaves the seam ready.

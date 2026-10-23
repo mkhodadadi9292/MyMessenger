@@ -101,15 +101,19 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
     const text = draft.trim()
     if (!text && !replyTo) return
     setError(null)
+    // clear optimistically: clearing only after the await lets the WS
+    // message.new event (which arrives before the REST response) resolve the
+    // UI first, and a quick follow-up draft gets wiped by the late clear
+    setDraft('')
+    setReplyTo(null)
     try {
       await api(`/chats/${chatId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, reply_to_id: replyTo?.id ?? null }),
       })
-      setDraft('')
-      setReplyTo(null)
     } catch (err) {
+      setDraft((current) => (current ? current : text))
       setError(err instanceof Error ? err.message : 'failed to send')
     }
   }

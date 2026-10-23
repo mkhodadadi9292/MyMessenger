@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 
 import { api } from '../api'
 import { formatTime } from '../time'
-import type { ChatListItem, InviteOut, UserPublic } from '../types'
+import type { ChatListItem, InviteOut, NotificationOut, UserPublic } from '../types'
+import { NotificationsPanel } from './NotificationsPanel'
 
 interface SearchResult {
   id: number
@@ -14,7 +15,9 @@ interface Props {
   user: UserPublic
   chats: ChatListItem[]
   selectedChatId: number | null
+  unreadCount: number
   onSelectChat: (id: number) => void
+  onMarkNotificationsRead: (chatId: number | null) => void
   onOpenSettings: () => void
   onOpenContacts: () => void
   onLogout: () => void
@@ -32,13 +35,16 @@ export function Sidebar({
   user,
   chats,
   selectedChatId,
+  unreadCount,
   onSelectChat,
+  onMarkNotificationsRead,
   onOpenSettings,
   onOpenContacts,
 }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [invites, setInvites] = useState<InviteOut[]>([])
+  const [notifications, setNotifications] = useState<NotificationOut[]>([])
   const [showInvites, setShowInvites] = useState(false)
   const [showJoin, setShowJoin] = useState(false)
   const [joinValue, setJoinValue] = useState('')
@@ -50,9 +56,20 @@ export function Sidebar({
       .catch(() => {})
   }
 
+  const refreshNotifications = () => {
+    api<NotificationOut[]>('/notifications')
+      .then(setNotifications)
+      .catch(() => {})
+  }
+
   useEffect(() => {
     refreshInvites()
   }, [])
+
+  // fetch the list on mount and whenever the unread count changes (new events)
+  useEffect(() => {
+    refreshNotifications()
+  }, [unreadCount])
 
   const doSearch = async () => {
     setError(null)
@@ -130,6 +147,20 @@ export function Sidebar({
           {user.username}
         </span>
         <div className="header-buttons">
+          <NotificationsPanel
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onOpenChat={onSelectChat}
+            onOpenInvites={() => {
+              refreshInvites()
+              setShowInvites(true)
+            }}
+            onMarkAllRead={() => {
+              onMarkNotificationsRead(null)
+              refreshNotifications()
+            }}
+            onMarkChatRead={onMarkNotificationsRead}
+          />
           <button
             className="icon-button"
             data-testid="contacts-button"

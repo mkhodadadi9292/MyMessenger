@@ -70,4 +70,8 @@ A production-grade design adds:
 
 ## Status in this project
 
-WS is now **implemented** (see `PLAN/README.md` and `CLAUDE.md`): a `/ws` endpoint with per-chat subscriptions delivers `message.new` and `chat.list_changed` events; REST remains the send path and short polling is kept only as an automatic fallback when the socket is down.
+WS is now **implemented** (see `system-design-docs/README.md` and `CLAUDE.md`): a `/ws` endpoint with per-chat subscriptions delivers `message.new` and `chat.list_changed` events; REST remains the send path and short polling is kept only as an automatic fallback when the socket is down.
+
+SSE is now **implemented for notifications** (see `system-design-docs/08-notifications.md` and
+[notification-system-architectures.md](notification-system-architectures.md)): `GET /api/v1/notifications/stream`
+delivers `notification.new` events per user with a persistent inbox.

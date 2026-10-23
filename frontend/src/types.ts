@@ -99,3 +99,17 @@ export interface AuthTokens {
   refresh_token: string
   user: UserPublic
 }
+
+export interface NotificationOut {
+  id: number
+  type: 'message' | 'invite'
+  chat_id: number
+  chat_title: string | null
+  sender_id: number
+  sender_username: string | null
+  preview: string | null
+  message_id: number | null
+  invite_id: number | null
+  is_read: boolean
+  created_at: string
+}
