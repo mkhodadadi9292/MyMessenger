@@ -13,7 +13,7 @@ config = context.config
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
+if config.config_file_name is not None and config.attributes.get("configure_logger", True):
     fileConfig(config.config_file_name)
 
 # add your model's MetaData object here
@@ -24,8 +24,8 @@ from app.infrastructure.db.base import Base
 
 target_metadata = Base.metadata
 
-settings = Settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+if not config.attributes.get("database_url_overridden"):
+    config.set_main_option("sqlalchemy.url", Settings().database_url)
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

@@ -1,20 +1,53 @@
 import asyncio
 import itertools
+import os
 import socket
 
 import httpx
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import NullPool, StaticPool
 
+from alembic import command
 from app.config import Settings
-from app.infrastructure.db.base import Base
 from app.infrastructure.db import models  # noqa: F401  (registers ORM tables)
+from app.infrastructure.db.base import Base
 from app.main import create_app
+from tests.containers import postgres_server
+from tests.databases import alembic_config, disposable_postgres_database, truncate_all_statement
 from tests.fakes import CapturingOtpSender
 from tests.helpers import register_user
+
+TEST_DB = os.environ.get("TEST_DB", "sqlite").lower()
+if TEST_DB not in ("sqlite", "postgres"):
+    raise pytest.UsageError("TEST_DB must be 'sqlite' or 'postgres'")
+
+
+def pytest_report_header() -> str:
+    return f"backend test database: {TEST_DB}"
+
+
+@pytest.fixture(scope="session")
+def postgres_admin_url():
+    with postgres_server() as url:
+        yield url
+
+
+@pytest.fixture(scope="session")
+def postgres_suite_url(postgres_admin_url: str):
+    with disposable_postgres_database(postgres_admin_url, "messenger_suite") as url:
+        command.upgrade(alembic_config(url), "head")
+        yield url
+
+
+@pytest.fixture
+def suite_database_url(request) -> str | None:
+    if TEST_DB == "postgres":
+        return request.getfixturevalue("postgres_suite_url")
+    return None
 
 
 @pytest.fixture
@@ -33,7 +66,9 @@ def otp_sender() -> CapturingOtpSender:
 
 
 @pytest.fixture
-async def app(settings: Settings, otp_sender: CapturingOtpSender) -> FastAPI:
+async def app(
+    suite_database_url: str | None, settings: Settings, otp_sender: CapturingOtpSender
+) -> FastAPI:
     application = create_app(settings)
     # Seam for the auth implementation: OTP codes go to this capturing
     # sender instead of the server log.
@@ -41,11 +76,16 @@ async def app(settings: Settings, otp_sender: CapturingOtpSender) -> FastAPI:
     # Swap the engine for a shared in-memory SQLite DB: file-backed DDL is
     # ~150ms/statement on this machine, which dominates test runtime.
     await application.state.engine.dispose()
-    engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
+    if suite_database_url is not None:
+        engine = create_async_engine(suite_database_url, poolclass=NullPool)
+        async with engine.begin() as conn:
+            await conn.execute(text(truncate_all_statement()))
+    else:
+        engine = create_async_engine("sqlite+aiosqlite://", poolclass=StaticPool)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     application.state.engine = engine
     application.state.session_factory = async_sessionmaker(engine, expire_on_commit=False)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
     yield application
     await engine.dispose()
 

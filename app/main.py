@@ -45,7 +45,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings.media_root.mkdir(parents=True, exist_ok=True)
     _ensure_sqlite_parent(settings.database_url)
 
-    engine, session_factory = create_engine_and_sessionmaker(settings.database_url)
+    engine, session_factory = create_engine_and_sessionmaker(
+        settings.database_url,
+        settings.db_pool_size,
+        settings.db_max_overflow,
+        settings.db_pool_timeout_seconds,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
