@@ -1,0 +1,59 @@
+{
+  "streams": {
+    "completed": "upload.completed",
+    "outcome": "upload.outcome"
+  },
+  "groups": {
+    "completed": "messenger-backend",
+    "outcome": "file-service"
+  },
+  "upload.completed": {
+    "required_fields": [
+      "schema_version",
+      "event_id",
+      "type",
+      "upload_id",
+      "ticket",
+      "file_path",
+      "size_bytes",
+      "sha256",
+      "mime_type",
+      "completed_at"
+    ],
+    "example": {
+      "schema_version": "1",
+      "event_id": "0f8c3a9b2e7d4c1a9b8e7f6a5d4c3b2a",
+      "type": "upload.completed",
+      "upload_id": "5b2f0c9e8d7a4b3c2d1e0f9a8b7c6d5e",
+      "ticket": "<signed upload ticket>",
+      "file_path": "artifacts/9d1c2b3a4f5e6d7c8b9a0f1e2d3c4b5a.png",
+      "size_bytes": "1048577",
+      "sha256": "3f5a8c2b1d4e6f7a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a",
+      "mime_type": "image/png",
+      "completed_at": "2026-11-06T12:00:00Z"
+    }
+  },
+  "upload.outcome": {
+    "required_fields": ["schema_version", "event_id", "type", "upload_id", "decided_at"],
+    "types": ["upload.attached", "upload.rejected"],
+    "examples": [
+      {
+        "schema_version": "1",
+        "event_id": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+        "type": "upload.attached",
+        "upload_id": "5b2f0c9e8d7a4b3c2d1e0f9a8b7c6d5e",
+        "message_id": "42",
+        "artifact_id": "7",
+        "decided_at": "2026-11-06T12:00:01Z"
+      },
+      {
+        "schema_version": "1",
+        "event_id": "6d5c4b3a2f1e0d9c8b7a6f5e4d3c2b1a",
+        "type": "upload.rejected",
+        "upload_id": "5b2f0c9e8d7a4b3c2d1e0f9a8b7c6d5e",
+        "reason": "not_member",
+        "decided_at": "2026-11-06T12:00:01Z"
+      }
+    ]
+  }
+}
