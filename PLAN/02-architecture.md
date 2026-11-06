@@ -33,13 +33,14 @@ Dependency rule: **presentation → application → domain**, and everything dep
 | Concern | Choice | Why |
 |---|---|---|
 | Web framework | FastAPI | REST, async, Pydantic v2, OpenAPI docs |
-| DB | SQLite via **async** SQLAlchemy 2.0 (`aiosqlite`) | v1 simplicity; `asyncpg` drop-in for Postgres later |
+| DB | PostgreSQL via **async** SQLAlchemy 2.0 (`asyncpg`); one server, one database + non-superuser role per service | `aiosqlite` only for the fast default test mode |
 | Migrations | Alembic (async template) | required; Postgres-safe DDL |
 | Auth | OTP (6-digit, printed in server log) → JWT access + refresh (refresh stored hashed in DB, revocable) | dev-simple, swappable email sender behind `OtpSender` port |
 | DI | FastAPI `Depends` | idiomatic, no extra container dependency |
 | Settings | pydantic-settings, `.env` | typed config, per-env overrides |
 | Storage | local disk `data/media/`; URLs served by Nginx in prod | simple, S3-ready behind `FileStorage` port |
-| Tests | pytest + pytest-asyncio + httpx ASGI | unit (no IO), integration (real SQLite test DB), e2e (full app) |
+| Tests | pytest + pytest-asyncio + httpx ASGI + testcontainers | unit (no IO), integration (in-memory SQLite or `TEST_DB=postgres`), e2e (full app); real Postgres/Redis containers for migrations, concurrency and streams |
+| Messaging between services | Redis Streams (`redis` async client), consumer groups, ack after commit, XAUTOCLAIM, dead letters | replaces Kafka from the original file-service/file-cleaner |
 | Frontend | React + Vite + TypeScript | Telegram-like SPA |
 | FE tests | Playwright | e2e incl. UI flows |
 | Reverse proxy | Nginx | static/media files + proxy to uvicorn |
@@ -82,7 +83,7 @@ app/
 alembic/                       # migrations
 tests/
 ├── unit/                      # domain + services with fake/mock repos
-├── integration/               # httpx ASGI + real test SQLite + tmp storage
+├── integration/               # httpx ASGI + test DB (SQLite or TEST_DB=postgres) + tmp storage
 ├── e2e/                       # full-app flows through HTTP (backend e2e)
 └── conftest.py                # fixtures: app, db, auth users, storage
 frontend/                      # React + Vite (Phase 6)
@@ -98,4 +99,6 @@ deploy/                        # nginx.conf, docker-compose.yml (Phase 8)
 5. Errors: services raise domain exceptions; `api/errors.py` maps them to 400/401/403/404/409 with a uniform body `{detail: ...}`.
 6. Auth: `get_current_user` dependency validates JWT, loads user via repository, enforces active status.
 7. Privacy rule enforced in application layer: user DTOs **never** include `phone`; phone search is exact-match only.
-8. Blocking enforced in application layer (message sending, inviting, profile access, contact add).
+8. Blocking enforced in application layer (message sending, inviting, profile access, contact add, upload tickets and upload attachment).
+9. Services never build other services or repositories; `app/api/composition.py` is the single factory used by `deps.py`, `ws.py` and the Redis Streams consumer.
+10. Side services (`file-service/`, `file-cleaner/`) follow the same layering in their own packages and never touch the backend's database (and vice versa).

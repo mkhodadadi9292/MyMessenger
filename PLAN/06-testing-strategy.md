@@ -4,18 +4,21 @@
 
 ```
         e2e/          full app through real HTTP — user journeys
-      integration/    httpx ASGI + real test SQLite + tmp storage — API contracts, DB constraints
+      integration/    httpx ASGI + test DB (in-memory SQLite or TEST_DB=postgres) + tmp storage
     unit/             pure python — entities, value objects, services with fake repos (no IO)
 ```
 
 | Layer | What it proves | Tools | DB |
 |---|---|---|---|
 | unit | domain rules, invariants, permission matrices, state machines | pytest, fakes | none |
-| integration | endpoints, auth flows, blocking, pagination, uploads, error mapping | pytest-asyncio + httpx ASGI transport | test SQLite file in tmp dir, created per test |
+| integration | endpoints, auth flows, blocking, pagination, upload tickets, upload attach, error mapping | pytest-asyncio + httpx ASGI transport | shared in-memory SQLite per test (default) or one testcontainers Postgres per session with TRUNCATE between tests (`TEST_DB=postgres`) |
+| postgres | migrations up/down (incl. existing rows), concurrent idempotent attach | testcontainers Postgres, disposable database per test | always Postgres |
+| streams | publish/consume, ack after commit, XAUTOCLAIM, duplicates, dead letters | testcontainers Redis, FLUSHDB per test | in-memory SQLite |
 | e2e (backend) | multi-user journeys over HTTP | httpx against the ASGI app | isolated test DB + tmp media |
 
 Isolation rules (per user policy):
-- Test DB is **always** a fresh SQLite file in a tmp directory — never the dev/prod DB, never `media.db`.
+- Test DB is **always** disposable: in-memory SQLite, or a testcontainers Postgres database created and dropped by the fixtures — never the dev/prod DB or a compose volume.
+- Tests that need Docker (Postgres/Redis containers) **fail** with a clear message when Docker is missing instead of being skipped; `TEST_POSTGRES_URL` / `TEST_REDIS_URL` may point at disposable CI services instead.
 - Media/storage in tests points at a tmp directory, wiped between tests.
 - OTP codes in tests are read from a fake `OtpSender` (captures codes) instead of server logs.
 - Fixtures seed users via the API (not direct SQL) wherever practical.
@@ -47,6 +50,13 @@ pytest tests/e2e
 # frontend
 cd frontend && npx vitest run
 cd frontend && npx playwright test
+
+# backend on Postgres
+TEST_DB=postgres uv run pytest
+
+# side services
+cd file-service && uv run pytest
+cd file-cleaner && uv run pytest
 ```
 
 ## CI (`.gitlab-ci.yml`)

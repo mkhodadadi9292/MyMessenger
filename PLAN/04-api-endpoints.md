@@ -80,8 +80,21 @@ Base URL: `/api/v1`. Auth: `Authorization: Bearer <access_token>` (marked 🔒).
 
 | # | Method | Path | Body / Params | Response | Auth |
 |---|---|---|---|---|---|
-| T1 | POST | `/chats/{chat_id}/artifacts` | multipart: `file`, `kind` (image\|video\|audio), `reply_to_id?` | created message with artifact | 🔒 |
+| U1 | POST | `/chats/{chat_id}/uploads` | `{file_name, size_bytes, mime_type, kind, sha256, reply_to_id?}` | `201 {upload_id, ticket, upload_url, expires_at}` — upload ticket for file-service | 🔒 |
 | T2 | GET | `/artifacts/{artifact_id}/download` | — | file (members only) | 🔒 |
+
+T1 (multipart upload) was removed; the message with the artifact arrives via the `message.new` WebSocket event once file-service reports the verified upload.
+
+### file-service (`/files/v1`, `Authorization: Bearer <upload ticket>`)
+
+| # | Method | Path | Response |
+|---|---|---|---|
+| F1 | POST | `/files/v1/uploads` | `201` new / `200` existing: `{upload_id, status, chunk_size, total_chunks, size_bytes, received_chunks}` |
+| F2 | PUT | `/files/v1/uploads/{upload_id}/chunks/{index}` | raw bytes, exact `Content-Length`; `200 {upload_id, index, size_bytes}`; idempotent |
+| F3 | GET | `/files/v1/uploads/{upload_id}` | same shape as F1 (resume) |
+| F4 | POST | `/files/v1/uploads/{upload_id}/complete` | `202`; `409 {missing_chunks}`; `422` size/sha256/MIME mismatch |
+| F5 | DELETE | `/files/v1/uploads/{upload_id}` | `204`; `409` once completed |
+| F6 | POST | `/internal/v1/cleanup/{rule}` | file-cleaner only (`X-Internal-Key`), not proxied by Nginx |
 
 ## Misc
 
@@ -102,6 +115,6 @@ Base URL: `/api/v1`. Auth: `Authorization: Bearer <access_token>` (marked 🔒).
 ## Notes
 
 - Phone numbers never appear in any response body.
-- Replies are plain `reply_to_id` on M2/T1 — no separate endpoint needed.
+- Replies are plain `reply_to_id` on M2/U1 — no separate endpoint needed.
 - Message history is cursor-paginated (`before_id`), default limit 50, max 100.
-- Artifact uploads validate MIME + size (e.g. ≤ 20 MB) and kind.
+- Artifact uploads validate MIME + size (≤ `MAX_ARTIFACT_SIZE_MB`) and kind at ticket time; file-service re-verifies size, sha256 and MIME on the assembled file.

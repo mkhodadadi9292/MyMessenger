@@ -126,6 +126,16 @@ Deliverables: `deploy/nginx.conf` (static frontend build, `/media/` alias, `/api
 
 ---
 
+## Phase 9 — PostgreSQL + chunked uploads (file-service, file-cleaner, Redis Streams)
+
+**Status: done.** Design and decisions: [08-chunked-upload.md](08-chunked-upload.md).
+
+Deliverables: backend on PostgreSQL (dev, Docker, Playwright) with separate non-superuser roles per service; upload ticket endpoint (U1); file-service chunk protocol with streaming verification; Redis Streams `upload.completed` / `upload.outcome` with ack-after-commit, XAUTOCLAIM and dead letters; idempotent attach via `artifacts.upload_id`; file-cleaner rules through file-service's internal API; frontend chunked uploader with progress/retry/resume/cancel; T1 removed.
+
+Tests: backend suite on SQLite and `TEST_DB=postgres`; Postgres migration and concurrency tests; real-Redis stream tests; file-service and file-cleaner suites (`TESTING.md` in each); Playwright multi-chunk upload and cancel specs.
+
+---
+
 ## Definition of done (global)
 
 **Status: done** — backend suite green (230/230: unit + integration + e2e), Playwright e2e green (7/7). Typecheck/lint/pyright jobs only exist in `.gitlab-ci.yml` when present; none configured in this repo yet.

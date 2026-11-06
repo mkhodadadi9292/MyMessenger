@@ -35,7 +35,8 @@
 
 ### FR-6 Artifacts (media)
 - FR-6.1 In any chat they are a member of, a user can send artifacts of kinds: **image**, **video**, **audio (music)**.
-- FR-6.2 Artifacts are uploaded (multipart), stored on disk (served by Nginx in prod), linked to a message; a message may carry an artifact instead of / alongside text.
+- FR-6.2 Artifacts are uploaded in resumable chunks to file-service after the backend issues an upload ticket (membership, blocking, kind/MIME and size checked first); verified files are stored on disk (served by Nginx in prod) and linked to a message by the backend when file-service announces completion over Redis Streams; a message may carry an artifact instead of / alongside text.
+- FR-6.4 The client shows upload progress and can cancel; interrupted uploads resume from the chunks already received.
 - FR-6.3 Artifacts can be downloaded by chat members.
 
 ### FR-7 Contacts
@@ -54,7 +55,7 @@
 
 | # | Requirement |
 |---|---|
-| NFR-1 | Python 3.13, FastAPI REST, SQLite via SQLAlchemy 2.0 async; DB URL swappable to Postgres later |
+| NFR-1 | Python 3.13, FastAPI REST, PostgreSQL via SQLAlchemy 2.0 async (asyncpg); code stays dialect-portable so the fast SQLite test mode keeps working |
 | NFR-2 | Alembic migrations from day one |
 | NFR-3 | Three layers (presentation / application / domain) + infrastructure; abstract repository interfaces |
 | NFR-4 | SOLID, full typing (`mypy`-clean), DI via FastAPI `Depends` |

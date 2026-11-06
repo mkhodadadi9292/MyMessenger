@@ -111,6 +111,9 @@ All IDs: integer autoincrement PKs. Timestamps UTC. FKs indexed. Soft-delete whe
 | mime_type | str | |
 | size_bytes | int | |
 | created_at | datetime | |
+| upload_id | str(32) NULL | unique index `ux_artifacts_upload_id`; set for chunked uploads, NULL for older artifacts; makes attaching idempotent |
+
+file-service owns its own database (`file_service`): table `upload_sessions` (see [08-chunked-upload.md](08-chunked-upload.md) §6.3).
 
 ## Value objects (domain)
 

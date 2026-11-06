@@ -1,6 +1,6 @@
 # 08 — Chunked uploads via file-service + Redis Streams
 
-Status: **approved** — decisions D1–D10 answered (see §9: all recommendations accepted, D1=b, D2=a).
+Status: **implemented** (Phase 9). Decisions D1–D10 were answered with the recommendations (D1=b, D2=a). §1 describes the state *before* the work; where implementation differs from this plan, §14 says so.
 
 Goal: large artifacts are uploaded in resumable chunks to `file-service`. When the file is assembled and verified, file-service tells the backend over Redis Streams. The backend creates the message + artifact and broadcasts `message.new` exactly as today. `file-cleaner` removes only files that are provably unreferenced. Kafka is removed.
 
@@ -421,3 +421,15 @@ New dependencies (each justified):
 - **The R3 grace period must exceed the backend's max event age.** This is checked at cleaner startup, but the two settings live in different services.
 - **`MAXLEN ~ 100000`** would drop unprocessed events only if the backlog ever exceeds 100k entries.
 - **Playwright now needs Docker** (throwaway Redis/Postgres containers).
+
+---
+
+## 14. Implementation notes (differences from the plan above)
+
+- Consumer groups are created with `XGROUP CREATE … 0 MKSTREAM`, not `$`, so a group created after events were published still receives them.
+- Stream settlement (cleaner rule R3) uses the group's `lag` when Redis reports it and otherwise compares `last-delivered-id` with the stream's `last-generated-id` (Redis can report `lag` as nil after deletions/trims).
+- Cleaner rules run as `POST /internal/v1/cleanup/{rule}` with `{older_than_seconds, limit}`; file-service applies each rule with compare-and-set status changes. All time comparisons are in UTC (a local-time bug in the chunk-dir rule was found and fixed by the cleaner's end-to-end tests).
+- `ChatWindow` now also reloads the open chat on `chat.list_changed` and merges by id. Before this, a `message.new` that arrived before the chat subscription was registered was lost (this made `artifact.spec.ts` fail on `origin/dev`).
+- nginx `/api/` allows 25 MB request bodies (the avatar limit is `MAX_ARTIFACT_SIZE_MB` = 20 MB, plus headroom); `/files/` stays at 2 MB.
+- Dockerfiles copy a pinned `uv` binary (`ghcr.io/astral-sh/uv:0.12.5`) instead of `pip install uv`.
+- file-cleaner tests run against the real file-service app in-process (dev-only path dependency), so file-service declares a setuptools build that packages only `file_service`.
