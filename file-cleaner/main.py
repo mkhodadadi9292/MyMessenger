@@ -1,13 +1,6 @@
 import asyncio
-from jobs.cleaner import start_jobs
-import logging
 
-logger = logging.getLogger("file_cleaner")
-
-async def main():
-    logger.info("Starting file cleaner service...")
-    start_jobs()
-    await asyncio.Event().wait()
+from file_cleaner.main import run
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(run())

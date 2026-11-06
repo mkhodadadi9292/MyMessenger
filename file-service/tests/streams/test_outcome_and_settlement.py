@@ -134,3 +134,16 @@ async def test_not_settled_when_upload_is_in_dead_letters(real_redis: Redis, str
     await real_redis.xack(COMPLETED, BACKEND, event_id)
     await real_redis.xadd(dead_letter_stream(stream), {"upload_id": "u1"})
     assert not await settlement(real_redis).is_settled("u1", event_id)
+
+
+async def test_settled_after_outcomes_were_applied_and_trimmed(real_redis: Redis) -> None:
+    event_id = await setup_groups(real_redis)
+    await real_redis.xreadgroup(BACKEND, "b", {COMPLETED: ">"})
+    await real_redis.xack(COMPLETED, BACKEND, event_id)
+    outcome_id = await real_redis.xadd(OUTCOME, {"type": "upload.attached", "upload_id": "u0"})
+    await real_redis.xreadgroup(FILE_SERVICE, "f", {OUTCOME: ">"})
+    await real_redis.xack(OUTCOME, FILE_SERVICE, outcome_id)
+    await real_redis.xdel(OUTCOME, outcome_id)
+    assert await settlement(real_redis).is_settled("u1", event_id)
+    await real_redis.xadd(OUTCOME, {"type": "upload.attached", "upload_id": "u2"})
+    assert not await settlement(real_redis).is_settled("u1", event_id)

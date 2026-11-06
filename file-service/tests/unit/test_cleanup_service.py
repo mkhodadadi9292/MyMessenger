@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -162,3 +162,26 @@ async def test_orphan_chunk_dirs_without_live_session_are_removed() -> None:
     assert sorted(result["purged"]) == ["aborted", "unknown"]
     assert result["skipped"] == ["live"]
     assert "live" in h.chunks.chunks
+
+
+def test_chunk_dir_age_uses_utc_regardless_of_local_timezone(tmp_path, monkeypatch) -> None:
+    import os
+    import time
+
+    from file_service.infrastructure.clock import utcnow
+    from file_service.infrastructure.storage import LocalChunkStore
+
+    monkeypatch.setenv("TZ", "Asia/Tehran")
+    time.tzset()
+    try:
+        old = tmp_path / ("a" * 32)
+        new = tmp_path / ("b" * 32)
+        old.mkdir()
+        new.mkdir()
+        two_hours_ago = time.time() - 7200
+        os.utime(old, (two_hours_ago, two_hours_ago))
+        cutoff = utcnow().replace(microsecond=0) - timedelta(hours=1)
+        assert LocalChunkStore(tmp_path).list_upload_dirs(cutoff) == ["a" * 32]
+    finally:
+        monkeypatch.delenv("TZ")
+        time.tzset()

@@ -4,7 +4,7 @@ import os
 import shutil
 import uuid
 from collections.abc import AsyncIterator
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from file_service.domain.exceptions import PayloadTooLargeError, ValidationError
@@ -59,7 +59,7 @@ class LocalChunkStore(ChunkStore):
     def list_upload_dirs(self, older_than: datetime) -> list[str]:
         if not self._root.is_dir():
             return []
-        cutoff = older_than.timestamp()
+        cutoff = older_than.replace(tzinfo=UTC).timestamp()
         return sorted(
             entry.name
             for entry in self._root.iterdir()

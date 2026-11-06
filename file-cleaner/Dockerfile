@@ -1,9 +1,15 @@
-FROM a_base_python:latest
+FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY . .
+RUN pip install --no-cache-dir uv
 
-RUN uv add aiokafka apscheduler httpx
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
 
-CMD ["uv", "run", "python", "main.py"]
+COPY file_cleaner ./file_cleaner
+COPY main.py ./
+
+ENV PATH="/app/.venv/bin:$PATH"
+
+CMD ["python", "main.py"]

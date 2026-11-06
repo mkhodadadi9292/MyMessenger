@@ -11,3 +11,4 @@ frontend/dist/
 frontend/playwright-report/
 frontend/test-results/
 .idea
+*.egg-info/

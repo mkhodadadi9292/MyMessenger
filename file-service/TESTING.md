@@ -59,6 +59,7 @@ Run everything: `uv run pytest` (needs Docker for the `redis` / `postgres` tests
 - `test_terminal_uploads_are_purged` — rejected/failed/aborted/expired uploads lose file and chunks.
 - `test_attached_files_are_never_purged_by_any_rule` — **no rule ever deletes an attached (referenced) file.**
 - `test_orphan_chunk_dirs_without_live_session_are_removed` — leftover chunk dirs go; dirs of live sessions stay.
+- `test_chunk_dir_age_uses_utc_regardless_of_local_timezone` — chunk-dir age compares in UTC even when the host timezone is not UTC.
 
 ## unit/test_event_contract.py
 - `test_default_stream_and_group_names_match_contract` — stream/group names match `contracts/upload-events.v1.json`.
@@ -101,6 +102,7 @@ Run everything: `uv run pytest` (needs Docker for the `redis` / `postgres` tests
 - `test_not_settled_while_an_outcome_is_unprocessed` — unapplied outcomes block purging.
 - `test_settled_when_backend_acked_and_outcomes_drained` — purging is allowed only when both streams are drained.
 - `test_not_settled_when_upload_is_in_dead_letters` — uploads in either dead-letter stream are kept for manual handling.
+- `test_settled_after_outcomes_were_applied_and_trimmed` — settlement still works after outcome entries are deleted/trimmed, and a new unprocessed outcome blocks purging again.
 
 ## postgres/test_migrations_and_repository.py (real Postgres)
 - `test_upgrade_downgrade_upgrade` — the migration history upgrades, downgrades one step and upgrades again on an empty database.

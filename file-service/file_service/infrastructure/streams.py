@@ -220,6 +220,15 @@ class RedisStreamSettlement(StreamSettlement):
                 return group
         return None
 
+    async def _fully_delivered(self, stream: str, group: dict) -> bool:
+        lag = group.get("lag")
+        if lag is not None:
+            return int(lag) == 0
+        info = await self._redis.xinfo_stream(stream)
+        last_generated = str(info.get("last-generated-id", "0-0"))
+        last_delivered = str(group.get("last-delivered-id", "0-0"))
+        return parse_stream_id(last_generated) <= parse_stream_id(last_delivered)
+
     async def _in_dead_letters(self, stream: str, upload_id: str) -> bool:
         entries = await self._redis.xrange(dead_letter_stream(stream))
         return any(fields.get("upload_id") == upload_id for _, fields in entries)
@@ -243,7 +252,7 @@ class RedisStreamSettlement(StreamSettlement):
         outcome = await self._group(self._outcome_stream, self._outcome_group)
         if outcome is None:
             return False
-        if outcome.get("lag") is None or int(outcome["lag"]) != 0:
+        if not await self._fully_delivered(self._outcome_stream, outcome):
             return False
         if int(outcome.get("pending", 0)) != 0:
             return False
