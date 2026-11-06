@@ -1,5 +1,5 @@
 import type { ReactionCode } from './reactions'
-import type { AuthTokens, MessageOut, ReactionsChanged } from './types'
+import type { AuthTokens, ReactionsChanged } from './types'
 
 const API = '/api/v1'
 
@@ -77,19 +77,6 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     throw new ApiError(response.status, detail)
   }
   return (await response.json()) as T
-}
-
-export async function uploadArtifact(
-  chatId: number,
-  file: File,
-  kind: 'image' | 'video' | 'audio',
-  replyToId: number | null,
-): Promise<MessageOut> {
-  const form = new FormData()
-  form.append('file', file)
-  form.append('kind', kind)
-  if (replyToId !== null) form.append('reply_to_id', String(replyToId))
-  return api<MessageOut>(`/chats/${chatId}/artifacts`, { method: 'POST', body: form })
 }
 
 export function setReaction(messageId: number, code: ReactionCode): Promise<ReactionsChanged> {

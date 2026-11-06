@@ -10,9 +10,11 @@ export interface UserPublic {
   created_at: string
 }
 
+export type ArtifactKind = 'image' | 'video' | 'audio'
+
 export interface ArtifactOut {
   id: number
-  kind: 'image' | 'video' | 'audio'
+  kind: ArtifactKind
   file_name: string
   mime_type: string
   size_bytes: number

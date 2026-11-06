@@ -40,12 +40,30 @@ services:
     entrypoint: ["sh", "/init-databases.sh"]
     restart: "no"
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - messenger-redis:/data
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   backend:
     build: .
     environment:
       DATABASE_URL: postgresql+asyncpg://${MESSENGER_DB_USER:-messenger}:${MESSENGER_DB_PASSWORD:-messenger-dev-password}@postgres:5432/${MESSENGER_DB_NAME:-messenger}
       MEDIA_ROOT: /data/media
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-0123456789}
+      REDIS_URL: redis://redis:6379/0
+      UPLOAD_TICKET_SECRET: ${UPLOAD_TICKET_SECRET:-dev-upload-ticket-secret-change-me-0123456789}
+      UPLOAD_EVENT_MAX_AGE_SECONDS: ${UPLOAD_EVENT_MAX_AGE_SECONDS:-21600}
+      MAX_ARTIFACT_SIZE_MB: ${MAX_ARTIFACT_SIZE_MB:-20}
       # DEBUG=true keeps the dev OTP helper (GET /api/v1/auth/otp/dev/latest)
       # and prints OTP codes to the backend log. Set to false in production.
       DEBUG: ${DEBUG:-true}
@@ -58,6 +76,8 @@ services:
         condition: service_healthy
       db-init:
         condition: service_completed_successfully
+      redis:
+        condition: service_healthy
     healthcheck:
       test:
         [
@@ -71,6 +91,55 @@ services:
       retries: 5
     restart: unless-stopped
 
+  file-service:
+    build: ./file-service
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${FILE_SERVICE_DB_USER:-file_service}:${FILE_SERVICE_DB_PASSWORD:-file-service-dev-password}@postgres:5432/${FILE_SERVICE_DB_NAME:-file_service}
+      REDIS_URL: redis://redis:6379/0
+      MEDIA_ROOT: /data/media
+      CHUNKS_ROOT: /data/uploads
+      UPLOAD_CHUNK_SIZE_BYTES: ${UPLOAD_CHUNK_SIZE_BYTES:-1048576}
+      MAX_UPLOAD_SIZE_BYTES: ${MAX_UPLOAD_SIZE_BYTES:-20971520}
+      UPLOAD_TICKET_SECRET: ${UPLOAD_TICKET_SECRET:-dev-upload-ticket-secret-change-me-0123456789}
+      INTERNAL_API_KEY: ${FILE_SERVICE_INTERNAL_API_KEY:-dev-internal-api-key-change-me}
+    volumes:
+      - messenger-media:/data/media
+      - messenger-uploads:/data/uploads
+    expose:
+      - "8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  file-cleaner:
+    build: ./file-cleaner
+    environment:
+      FILE_SERVICE_URL: http://file-service:8000
+      INTERNAL_API_KEY: ${FILE_SERVICE_INTERNAL_API_KEY:-dev-internal-api-key-change-me}
+      BACKEND_UPLOAD_EVENT_MAX_AGE_SECONDS: ${UPLOAD_EVENT_MAX_AGE_SECONDS:-21600}
+      UPLOAD_SESSION_TTL_SECONDS: ${UPLOAD_SESSION_TTL_SECONDS:-86400}
+      ATTACH_GRACE_PERIOD_SECONDS: ${ATTACH_GRACE_PERIOD_SECONDS:-172800}
+    depends_on:
+      file-service:
+        condition: service_healthy
+    restart: unless-stopped
+
   frontend:
     build:
       context: .
@@ -82,8 +151,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      file-service:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   messenger-pg:
   messenger-media:
+  messenger-uploads:
+  messenger-redis:

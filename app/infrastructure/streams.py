@@ -188,8 +188,8 @@ class StreamConsumer:
                 await self.process_new()
             except asyncio.CancelledError:
                 raise
-            except (RedisError, OSError):
-                logger.warning("redis unavailable for %s; retrying", self.stream, exc_info=True)
+            except (RedisError, OSError) as exc:
+                logger.warning("redis unavailable for %s (%s); retrying", self.stream, exc)
                 await _sleep_or_stop(stop, 2)
             except Exception:
                 logger.exception("stream loop error on %s", self.stream)

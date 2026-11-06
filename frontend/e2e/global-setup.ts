@@ -6,6 +6,8 @@ export default function globalSetup() {
   // NOTE: webServers start BEFORE globalSetup, so the backend's own start
   // command wipes and migrates its database; here we only reset media files.
   const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-  rmSync(join(root, 'data', 'e2e-media'), { recursive: true, force: true })
-  mkdirSync(join(root, 'data', 'e2e-media'), { recursive: true })
+  for (const directory of ['e2e-media', 'e2e-uploads']) {
+    rmSync(join(root, 'data', directory), { recursive: true, force: true })
+    mkdirSync(join(root, 'data', directory), { recursive: true })
+  }
 }

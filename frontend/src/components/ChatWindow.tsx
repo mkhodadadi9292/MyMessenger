@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { api, removeReaction, setReaction, uploadArtifact } from '../api'
+import { api, removeReaction, setReaction } from '../api'
 import type { ReactionCode } from '../reactions'
-import type { ChatOut, ContactOut, MemberOut, MessageOut, ReactionsChanged, UserPublic } from '../types'
+import type {
+  ArtifactKind,
+  ChatOut,
+  ContactOut,
+  MemberOut,
+  MessageOut,
+  ReactionsChanged,
+  UserPublic,
+} from '../types'
+import { startUpload, UploadCancelledError, type UploadHandle, type UploadProgress } from '../upload'
 import { MessageBubble } from './MessageBubble'
 import { realtime } from '../ws'
 
@@ -10,6 +19,30 @@ interface Props {
   user: UserPublic
   chatId: number | null
   onBack?: () => void
+}
+
+interface ActiveUpload {
+  fileName: string
+  progress: UploadProgress
+}
+
+function mergeMessages(current: MessageOut[], fetched: MessageOut[]): MessageOut[] {
+  const byId = new Map(current.map((m) => [m.id, m]))
+  for (const message of fetched) byId.set(message.id, message)
+  return [...byId.values()].sort((a, b) => b.id - a.id)
+}
+
+function artifactKindOf(file: File): ArtifactKind {
+  if (file.type.startsWith('image/')) return 'image'
+  if (file.type.startsWith('video/')) return 'video'
+  return 'audio'
+}
+
+function uploadLabel(progress: UploadProgress): string {
+  const percent = progress.total ? Math.floor((progress.loaded / progress.total) * 100) : 0
+  if (progress.phase === 'hashing') return `Preparing ${percent}%`
+  if (progress.phase === 'finishing') return 'Finishing…'
+  return `${percent}%`
 }
 
 function withReactions(messages: MessageOut[], change: ReactionsChanged): MessageOut[] {
@@ -27,6 +60,8 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [blocked, setBlocked] = useState<ContactOut[]>([])
   const [inviteUsername, setInviteUsername] = useState('')
+  const [upload, setUpload] = useState<ActiveUpload | null>(null)
+  const uploadHandle = useRef<UploadHandle | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -46,7 +81,14 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
     if (chatId === null) return
     const load = () => {
       api<MessageOut[]>(`/chats/${chatId}/messages`)
-        .then(setMessages)
+        .then((fetched) =>
+          setMessages((prev) =>
+            mergeMessages(
+              prev.filter((m) => m.chat_id === chatId),
+              fetched,
+            ),
+          ),
+        )
         .catch(() => {})
     }
     load()
@@ -57,6 +99,7 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
           prev.some((m) => m.id === event.message.id) ? prev : [event.message, ...prev],
         )
       }
+      if (event.type === 'chat.list_changed') load()
       if (event.type === 'message.reactions_changed' && event.chat_id === chatId) {
         setMessages((prev) => withReactions(prev, event))
       }
@@ -69,6 +112,7 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
       offEvent()
       clearInterval(timer)
       realtime.unsubscribe(chatId)
+      uploadHandle.current?.cancel()
     }
   }, [chatId])
 
@@ -130,19 +174,31 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
   }
 
   const attach = async (file: File) => {
+    if (uploadHandle.current) return
     setError(null)
-    const kind = file.type.startsWith('image/')
-      ? 'image'
-      : file.type.startsWith('video/')
-        ? 'video'
-        : 'audio'
+    const handle = startUpload({
+      chatId,
+      file,
+      kind: artifactKindOf(file),
+      replyToId: replyTo?.id ?? null,
+      onProgress: (progress) => setUpload({ fileName: file.name, progress }),
+    })
+    uploadHandle.current = handle
+    setUpload({ fileName: file.name, progress: { phase: 'hashing', loaded: 0, total: file.size } })
     try {
-      await uploadArtifact(chatId, file, kind, replyTo?.id ?? null)
+      await handle.done
       setReplyTo(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'failed to upload')
+      if (!(err instanceof UploadCancelledError)) {
+        setError(err instanceof Error ? err.message : 'failed to upload')
+      }
+    } finally {
+      uploadHandle.current = null
+      setUpload(null)
     }
   }
+
+  const cancelUpload = () => uploadHandle.current?.cancel()
 
   const toggleBlock = async () => {
     if (!otherMember) return
@@ -242,6 +298,23 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
         </div>
       )}
 
+      {upload && (
+        <div className="upload-progress" data-testid="upload-progress">
+          <span className="upload-name">{upload.fileName}</span>
+          <progress
+            max={upload.progress.total || 1}
+            value={upload.progress.loaded}
+            aria-label={`Uploading ${upload.fileName}`}
+          />
+          <span className="upload-percent" data-testid="upload-percent">
+            {uploadLabel(upload.progress)}
+          </span>
+          <button data-testid="upload-cancel" title="Cancel upload" onClick={cancelUpload}>
+            ✕
+          </button>
+        </div>
+      )}
+
       <footer className="composer">
         <input
           ref={fileInput}
@@ -259,6 +332,7 @@ export function ChatWindow({ user, chatId, onBack }: Props) {
           className="attach-button"
           data-testid="attach-button"
           title="Attach image / video / audio"
+          disabled={upload !== null}
           onClick={() => fileInput.current?.click()}
         >
           📎
