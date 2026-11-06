@@ -16,11 +16,12 @@ from app.config import Settings
 from app.infrastructure.db import models  # noqa: F401  (registers ORM tables)
 from app.infrastructure.db.base import Base
 from app.main import create_app
-from tests.containers import postgres_server
+from tests.containers import postgres_server, redis_server
 from tests.databases import alembic_config, disposable_postgres_database, truncate_all_statement
 from tests.fakes import CapturingOtpSender
 from tests.helpers import register_user
 
+TEST_UPLOAD_TICKET_SECRET = "test-upload-ticket-secret-0123456789-abcdef"
 TEST_DB = os.environ.get("TEST_DB", "sqlite").lower()
 if TEST_DB not in ("sqlite", "postgres"):
     raise pytest.UsageError("TEST_DB must be 'sqlite' or 'postgres'")
@@ -43,6 +44,23 @@ def postgres_suite_url(postgres_admin_url: str):
         yield url
 
 
+@pytest.fixture(scope="session")
+def redis_url():
+    with redis_server() as url:
+        yield url
+
+
+@pytest.fixture
+async def real_redis(redis_url: str):
+    from redis.asyncio import Redis
+
+    client = Redis.from_url(redis_url, decode_responses=True)
+    await client.flushdb()
+    yield client
+    await client.flushdb()
+    await client.aclose()
+
+
 @pytest.fixture
 def suite_database_url(request) -> str | None:
     if TEST_DB == "postgres":
@@ -56,6 +74,8 @@ def settings(tmp_path) -> Settings:
         database_url="sqlite+aiosqlite://",
         media_root=tmp_path / "media",
         jwt_secret="test-secret-0123456789-0123456789",
+        upload_ticket_secret=TEST_UPLOAD_TICKET_SECRET,
+        redis_url=None,
         _env_file=None,
     )
 

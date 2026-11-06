@@ -1,8 +1,9 @@
 from abc import abstractmethod
 from collections.abc import Sequence
 
-from app.domain.repositories.base import AbstractRepository
 from app.domain.entities import Artifact, Message, Reaction
+from app.domain.repositories.base import AbstractRepository
+
 
 class MessageRepository(AbstractRepository[Message, int]):
     @abstractmethod
@@ -25,6 +26,10 @@ class MessageRepository(AbstractRepository[Message, int]):
 class ArtifactRepository(AbstractRepository[Artifact, int]):
     @abstractmethod
     async def list_by_message_ids(self, message_ids: Sequence[int]) -> list[Artifact]:
+        ...
+
+    @abstractmethod
+    async def get_by_upload_id(self, upload_id: str) -> Artifact | None:
         ...
 
 class ReactionRepository(AbstractRepository[Reaction, int]):

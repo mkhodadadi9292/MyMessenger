@@ -1,6 +1,7 @@
 from httpx import AsyncClient
 
 from tests.helpers import auth_headers, register_user
+from tests.uploads import upload_artifact
 
 API = "/api/v1"
 
@@ -61,7 +62,9 @@ async def test_private_group_invite_journey(live_client: AsyncClient, otp_sender
     assert roles[alice["user"]["id"]] == "owner"
 
 
-async def test_public_group_artifact_journey(live_client: AsyncClient, otp_sender) -> None:
+async def test_public_group_artifact_journey(
+    app, live_client: AsyncClient, otp_sender
+) -> None:
     client = live_client
     alice = await register_user(client, otp_sender, "alice@example.com", "alice", "Alice")
     bob = await register_user(client, otp_sender, "bob@example.com", "bob", "Bob")
@@ -78,14 +81,10 @@ async def test_public_group_artifact_journey(live_client: AsyncClient, otp_sende
     )
     assert joined.status_code == 200
 
-    uploaded = await client.post(
-        f"{API}/chats/{group_id}/artifacts",
-        files={"file": ("pic.png", PNG, "image/png")},
-        data={"kind": "image"},
-        headers=auth_headers(alice["access_token"]),
+    uploaded = await upload_artifact(
+        app, client, alice, group_id, "pic.png", PNG, "image/png", "image"
     )
-    assert uploaded.status_code == 200
-    artifact = uploaded.json()["artifact"]
+    artifact = uploaded["artifact"]
 
     downloaded = await client.get(
         f"{API}/artifacts/{artifact['id']}/download", headers=auth_headers(bob["access_token"])

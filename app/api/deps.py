@@ -3,6 +3,13 @@ from collections.abc import AsyncIterator
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.composition import (
+    MessagingRepositories,
+    build_artifact_service,
+    build_message_service,
+    build_messaging_repositories,
+    build_upload_service,
+)
 from app.application.artifact_service import ArtifactService
 from app.application.auth_service import AuthService
 from app.application.block_service import BlockService
@@ -11,6 +18,7 @@ from app.application.contact_service import ContactService
 from app.application.invite_service import InviteService
 from app.application.message_service import MessageService
 from app.application.ports import OtpSender
+from app.application.upload_service import UploadService
 from app.application.user_service import UserService
 from app.config import Settings
 from app.domain.entities import User
@@ -26,7 +34,11 @@ from app.infrastructure.repositories.chat import (
     SqlInviteRepository,
 )
 from app.infrastructure.repositories.contact import SqlBlockRepository, SqlContactRepository
-from app.infrastructure.repositories.message import SqlArtifactRepository, SqlMessageRepository, SqlReactionRepository
+from app.infrastructure.repositories.message import (
+    SqlArtifactRepository,
+    SqlMessageRepository,
+    SqlReactionRepository,
+)
 from app.infrastructure.repositories.user import SqlUserRepository
 from app.infrastructure.storage import LocalStorage
 
@@ -151,31 +163,28 @@ def get_reaction_repo(db: AsyncSession = Depends(get_db)) -> SqlReactionReposito
     return SqlReactionRepository(db)
 
 
-def get_message_service(
-    messages: SqlMessageRepository = Depends(get_message_repo),
-    artifacts: SqlArtifactRepository = Depends(get_artifact_repo),
-    chats: SqlChatRepository = Depends(get_chat_repo),
-    members: SqlChatMemberRepository = Depends(get_member_repo),
-    users: SqlUserRepository = Depends(get_user_repo),
-    blocks: SqlBlockRepository = Depends(get_block_repo),
-    reactions: SqlReactionRepository = Depends(get_reaction_repo),
-) -> MessageService:
-    return MessageService(messages, artifacts, chats, members, users, blocks, reactions)
+def get_messaging_repos(db: AsyncSession = Depends(get_db)) -> MessagingRepositories:
+    return build_messaging_repositories(db)
 
+
+def get_message_service(
+    repos: MessagingRepositories = Depends(get_messaging_repos),
+) -> MessageService:
+    return build_message_service(repos)
 
 
 def get_artifact_service(
-    messages: SqlMessageRepository = Depends(get_message_repo),
-    artifacts: SqlArtifactRepository = Depends(get_artifact_repo),
-    chats: SqlChatRepository = Depends(get_chat_repo),
-    members: SqlChatMemberRepository = Depends(get_member_repo),
-    users: SqlUserRepository = Depends(get_user_repo),
-    blocks: SqlBlockRepository = Depends(get_block_repo),
-    reactions: SqlReactionRepository = Depends(get_reaction_repo),
-    storage: LocalStorage = Depends(get_storage),
+    repos: MessagingRepositories = Depends(get_messaging_repos),
     settings: Settings = Depends(get_settings),
 ) -> ArtifactService:
-    return ArtifactService(messages, artifacts, chats, members, users, blocks, reactions, storage, settings)
+    return build_artifact_service(repos, settings)
+
+
+def get_upload_service(
+    repos: MessagingRepositories = Depends(get_messaging_repos),
+    settings: Settings = Depends(get_settings),
+) -> UploadService:
+    return build_upload_service(repos, settings)
 
 
 async def get_current_user(

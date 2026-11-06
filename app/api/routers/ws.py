@@ -2,16 +2,12 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.api.composition import build_message_service, build_messaging_repositories
 from app.api.realtime import broadcast_new_message
 from app.config import Settings
 from app.domain.exceptions import DomainError, UnauthorizedError
 from app.infrastructure.auth.jwt import TOKEN_ACCESS, decode_token
 from app.infrastructure.realtime import ConnectionManager
-from app.infrastructure.repositories.chat import SqlChatMemberRepository, SqlChatRepository
-from app.infrastructure.repositories.contact import SqlBlockRepository
-from app.infrastructure.repositories.message import SqlArtifactRepository, SqlMessageRepository, SqlReactionRepository
-from app.infrastructure.repositories.user import SqlUserRepository
-from app.application.message_service import MessageService
 
 logger = logging.getLogger("app.realtime")
 
@@ -67,20 +63,13 @@ async def _handle_send(
     session_factory = websocket.app.state.session_factory
     async with session_factory() as session:
         try:
-            service = MessageService(
-                SqlMessageRepository(session),
-                SqlArtifactRepository(session),
-                SqlChatRepository(session),
-                SqlChatMemberRepository(session),
-                SqlUserRepository(session),
-                SqlBlockRepository(session),
-                SqlReactionRepository(session),
-            )
+            repos = build_messaging_repositories(session)
+            service = build_message_service(repos)
             message = await service.send_message(user_id, chat_id, text, reply_to_id)
-            sender = await SqlUserRepository(session).get(user_id)
+            sender = await repos.users.get(user_id)
             event = await broadcast_new_message(
                 hub,
-                SqlChatMemberRepository(session),
+                repos.members,
                 service,
                 message,
                 sender,

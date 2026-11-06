@@ -1,4 +1,5 @@
 from tests.helpers import API_V1, auth_headers
+from tests.uploads import upload_artifact
 
 API = API_V1
 
@@ -326,17 +327,15 @@ async def test_reply_preview_for_deleted_message(client, user_factory) -> None:
     assert preview["text"] is None
 
 
-async def test_reply_preview_for_artifact_message(client, user_factory) -> None:
+async def test_reply_preview_for_artifact_message(app, client, user_factory) -> None:
     alice = await user_factory(username="alice")
     bob = await user_factory(username="bob")
     chat = await _open_chat(client, alice, bob)
-    upload = await client.post(
-        f"{API}/chats/{chat}/artifacts",
-        files={"file": ("pic.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 32, "image/png")},
-        data={"kind": "image"},
-        headers=auth_headers(alice["access_token"]),
+    upload = await upload_artifact(
+        app, client, alice, chat, "pic.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 32,
+        "image/png", "image",
     )
-    artifact_message_id = upload.json()["id"]
+    artifact_message_id = upload["id"]
     reply = await client.post(
         f"{API}/chats/{chat}/messages",
         json={"text": "nice pic", "reply_to_id": artifact_message_id},

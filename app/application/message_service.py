@@ -1,13 +1,23 @@
-from app.domain.exceptions import ForbiddenError, NotFoundError, ValidationError
+from app.domain.entities import Artifact, Chat, Message, Reaction, User
+from app.domain.exceptions import (
+    BlockedError,
+    ForbiddenError,
+    NotFoundError,
+    NotMemberError,
+    ValidationError,
+)
 from app.domain.pagination import validate_limit
 from app.domain.repositories.chat import ChatMemberRepository, ChatRepository
 from app.domain.repositories.contact import BlockRepository
+from app.domain.repositories.message import (
+    ArtifactRepository,
+    MessageRepository,
+    ReactionRepository,
+)
 from app.domain.repositories.user import UserRepository
 from app.domain.time import utcnow
-from app.domain.value_objects import ChatType
-from app.domain.entities import Artifact, Chat, Message, Reaction, User
-from app.domain.repositories.message import ArtifactRepository, MessageRepository, ReactionRepository
 from app.domain.value_objects import ChatType, ReactionCode
+
 
 class MessageService:
     def __init__(
@@ -34,7 +44,7 @@ class MessageService:
             raise NotFoundError("chat not found")
         member = await self._members.get_pair(chat_id, actor_id)
         if member is None:
-            raise ForbiddenError("you are not a member of this chat")
+            raise NotMemberError("you are not a member of this chat")
         return chat
 
     async def _ensure_can_message(self, chat: Chat, actor_id: int) -> None:
@@ -45,7 +55,12 @@ class MessageService:
                 if m.user_id != actor_id
             ]
             if other and await self._blocks.blocks_either(actor_id, other[0]):
-                raise ForbiddenError("you cannot message this user")
+                raise BlockedError("you cannot message this user")
+
+    async def ensure_can_post(self, actor_id: int, chat_id: int) -> Chat:
+        chat = await self._require_membership(chat_id, actor_id)
+        await self._ensure_can_message(chat, actor_id)
+        return chat
 
     async def resolve_reply(self, chat_id: int, reply_to_id: int | None) -> int | None:
         if reply_to_id is None:

@@ -1,8 +1,10 @@
 import uuid
 from pathlib import Path
 
+from app.application.ports import MediaLibrary
 
-class LocalStorage:
+
+class LocalStorage(MediaLibrary):
     """File storage under the media root; Nginx serves this tree in prod."""
 
     def __init__(self, root: Path) -> None:
@@ -16,5 +18,9 @@ class LocalStorage:
         path.write_bytes(content)
         return relative
 
-    def path_for(self, relative: str) -> Path:
-        return self.root / relative
+    def path_for(self, relative_path: str) -> Path:
+        return self.root / relative_path
+
+    def exists(self, relative_path: str) -> bool:
+        path = (self.root / relative_path).resolve()
+        return path.is_file() and path.is_relative_to(self.root.resolve())

@@ -1,12 +1,19 @@
 from collections.abc import Sequence
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.domain.entities import Artifact, Message, Reaction
-from app.domain.repositories.message import ArtifactRepository, MessageRepository, ReactionRepository
+from app.domain.exceptions import DuplicateUploadError
+from app.domain.repositories.message import (
+    ArtifactRepository,
+    MessageRepository,
+    ReactionRepository,
+)
 from app.domain.value_objects import ArtifactKind, ReactionCode
 from app.infrastructure.db.models import ArtifactModel, MessageModel, ReactionModel
+
 
 def message_to_entity(model: MessageModel) -> Message:
     return Message(
@@ -98,6 +105,7 @@ def artifact_to_entity(model: ArtifactModel) -> Artifact:
         mime_type=model.mime_type,
         size_bytes=model.size_bytes,
         created_at=model.created_at,
+        upload_id=model.upload_id,
     )
 
 
@@ -128,10 +136,24 @@ class SqlArtifactRepository(ArtifactRepository):
             mime_type=entity.mime_type,
             size_bytes=entity.size_bytes,
             created_at=entity.created_at,
+            upload_id=entity.upload_id,
         )
         self._session.add(model)
-        await self._session.flush()
+        try:
+            await self._session.flush()
+        except IntegrityError as exc:
+            if entity.upload_id is not None:
+                raise DuplicateUploadError(
+                    f"upload {entity.upload_id} is already attached"
+                ) from exc
+            raise
         return artifact_to_entity(model)
+
+    async def get_by_upload_id(self, upload_id: str) -> Artifact | None:
+        model = await self._session.scalar(
+            select(ArtifactModel).where(ArtifactModel.upload_id == upload_id)
+        )
+        return artifact_to_entity(model) if model else None
 
     async def delete(self, entity: Artifact) -> None:
         model = await self._session.get(ArtifactModel, entity.id)

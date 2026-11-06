@@ -14,9 +14,21 @@ class ForbiddenError(DomainError):
     pass
 
 
+class NotMemberError(ForbiddenError):
+    pass
+
+
+class BlockedError(ForbiddenError):
+    pass
+
+
 class NotFoundError(DomainError):
     pass
 
 
 class ConflictError(DomainError):
+    pass
+
+
+class DuplicateUploadError(ConflictError):
     pass

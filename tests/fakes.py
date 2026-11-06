@@ -1,4 +1,4 @@
-from app.application.ports import OtpSender
+from app.application.ports import OtpSender, UploadOutcomePublisher
 
 
 class CapturingOtpSender(OtpSender):
@@ -12,3 +12,15 @@ class CapturingOtpSender(OtpSender):
 
     def code_for(self, identifier: str) -> str:
         return self.sent[identifier]
+
+
+class RecordingOutcomePublisher(UploadOutcomePublisher):
+    def __init__(self) -> None:
+        self.attached: list[tuple[str, int, int]] = []
+        self.rejected: list[tuple[str, str]] = []
+
+    async def publish_attached(self, upload_id: str, message_id: int, artifact_id: int) -> None:
+        self.attached.append((upload_id, message_id, artifact_id))
+
+    async def publish_rejected(self, upload_id: str, reason: str) -> None:
+        self.rejected.append((upload_id, reason))

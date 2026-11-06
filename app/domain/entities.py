@@ -83,6 +83,7 @@ class Artifact:
     mime_type: str
     size_bytes: int
     created_at: datetime
+    upload_id: str | None = None
 
 
 @dataclass
