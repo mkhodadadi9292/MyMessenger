@@ -1,0 +1,1 @@
+FILES_CLEANER_EVENTS = "files.cleaner.events"

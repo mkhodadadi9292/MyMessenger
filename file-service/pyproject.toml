@@ -1,0 +1,18 @@
+[project]
+name = "file-service"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.135.3",
+    "uvicorn>=0.43.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.13.1",
+    "asyncpg>=0.31.0",
+    "sqlalchemy>=2.0.49",
+    "alembic>=1.13.1",
+    "cryptography>=42.0.0",
+    "redis>=7.4.0",
+    "mutagen>=1.47.0",
+    "pillow>=12.2.0",
+]
